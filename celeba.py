@@ -1,19 +1,17 @@
 import os
 import zipfile
 import gdown
-import torch
 from natsort import natsorted
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision import transforms
 import re
 import numpy as np
 import torch
 
+
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-## Create a custom Dataset class
 class CelebADataset(Dataset):
     def __init__(
             self, root_dir=os.path.join(CUR_DIR, 'data/celeba'),

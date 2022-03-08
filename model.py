@@ -3,13 +3,13 @@ import torch.nn as nn
 
 # noinspection PyTypeChecker
 class BasicEncBlock(nn.Module):
-    def __init__(self, input_dim, output_dim, nonlinearity=nn.LeakyReLU(0.2)):
+    def __init__(self, input_dim, output_dim, slope=0.2, nonlinearity=nn.LeakyReLU()):
         super().__init__()
         block = [
             nn.Conv2d(input_dim, output_dim, kernel_size=4, stride=2,
                       padding=1),
             nn.BatchNorm2d(output_dim),
-            nonlinearity
+            nonlinearity(slope)
         ]
 
         self.encode = nn.Sequential(*block)
@@ -19,15 +19,16 @@ class BasicEncBlock(nn.Module):
 
 
 class BasicDecBlock(nn.Module):
-    def __init__(self, input_dim, output_dim, nonlinearity=nn.LeakyReLU(0.2)):
+    def __init__(self, input_dim, output_dim, slope=0.2, nonlinearity=nn.LeakyReLU()):
         super().__init__()
+        # noinspection PyTypeChecker
         block = [
             nn.Upsample(scale_factor=2, mode='nearest'),
             nn.ReplicationPad2d(1),
             nn.Conv2d(input_dim, output_dim, kernel_size=3, stride=1,
                       padding=0),
             nn.BatchNorm2d(output_dim),
-            nonlinearity
+            nonlinearity(slope)
         ]
 
         self.decode = nn.Sequential(*block)
@@ -36,16 +37,18 @@ class BasicDecBlock(nn.Module):
         return self.decode(x)
 
 
+# noinspection PyTypeChecker
 class AE(nn.Module):
     def __init__(self, in_channels, input_dim, out_channels,
-                 latent_dim, img_size=64, num_blocks=5):
+                 latent_dim, slope, img_size=64, num_blocks=5):
         super().__init__()
+        # noinspection PyTypeChecker
         encoder = [nn.Conv2d(in_channels, input_dim, kernel_size=1,
                              stride=1, padding=0, bias=False)]
         hidden_dim = input_dim
         spatial_size = img_size
         for _ in range(num_blocks):
-            encoder.append(BasicEncBlock(hidden_dim, hidden_dim * 2))
+            encoder.append(BasicEncBlock(hidden_dim, hidden_dim * 2, slope))
             hidden_dim *= 2
             spatial_size /= 2
 
@@ -61,7 +64,7 @@ class AE(nn.Module):
                              stride=1, padding=0, bias=False)]
 
         for _ in range(num_blocks):
-            decoder.append(BasicDecBlock(hidden_dim, hidden_dim // 2))
+            decoder.append(BasicDecBlock(hidden_dim, hidden_dim // 2, slope))
             hidden_dim = hidden_dim // 2
         decoder.append(nn.Conv2d(hidden_dim, out_channels, kernel_size=1,
                                  stride=1, padding=0, bias=False))
@@ -74,5 +77,3 @@ class AE(nn.Module):
         x = self.encoder(x)
         x = self.decoder(x)
         return x
-
-
