@@ -61,8 +61,7 @@ class Encoder(nn.Module):
         self.encoder = nn.Sequential(*encoder)
 
     def forward(self, x):
-        x = self.encoder(x)
-        return x
+        return self.encoder(x)
 
 
 # noinspection PyTypeChecker
@@ -85,6 +84,9 @@ class Decoder(nn.Module):
                                  stride=1, padding=0, bias=False))
 
         self.decoder = nn.Sequential(*decoder)
+
+    def forward(self, x):
+        return self.decoder(x)
 
 
 # noinspection PyTypeChecker
