@@ -18,7 +18,7 @@ def build_celeba_dataloader(config):
     ])
     dataset = CelebADataset(
                             attr_file_path='list_attr_celeba.txt',
-                            transfrom=transform,
+                            transform=transform,
                             crop=False)
     dataloader = data.DataLoader(dataset, batch_size=config.batch_size,
                                  drop_last=True)
