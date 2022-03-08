@@ -23,16 +23,18 @@ def initialize_weights(m):
         nn.init.constant_(m.bias.data, 0)
 
 
-def save_model(model, checkpoint_path):
+def save_model(model, epoch, checkpoint_path):
     torch.save({
-        'autoencoder': model.state_dict()
+        'autoencoder': model.state_dict(),
+        'epoch': epoch
     }, checkpoint_path)
 
 
 def load_model(model, checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     model.load_state_dict(checkpoint['autoencoder'])
-    return model
+    epoch = checkpoint["epoch"]
+    return model, epoch
 
 
 def matplotlib_imshow(img, one_channel=False):
@@ -51,9 +53,9 @@ def save_images(images, config, idx):
         os.makedirs(os.path.join(config.output_path, 'outputs'))
     pics = (images + 1) / 2
     save_image(pics.data.cpu(),
-              os.path.join(config.output_path, 'outputs',
-                          '{}-images.jpg'.format(idx+1)),
-                          nrow=8)
+               os.path.join(config.output_path, 'outputs',
+                            '{}-images.jpg'.format(idx+1)),
+               nrow=8)
 
 
 def train(dataloader, config):
@@ -80,11 +82,13 @@ def train(dataloader, config):
     
     if config.resume_training:
         print(f"loading weights...")
-        model = load_model(model, config.checkpoint_path)
+        model, start_epoch = load_model(model, config.checkpoint_path)
+    else:
+        start_epoch = 0
 
     #writer = SummaryWriter(os.path.join(config.base_path, 'runs'))
 
-    for epoch in range(config.max_epochs):
+    for epoch in range(start_epoch, config.max_epochs):
         running_loss = 0.
         progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
         for idx, (image, _) in progress_bar:
@@ -112,11 +116,10 @@ def train(dataloader, config):
                     #writer.add_image('ep{epoch+1}_batch{idx+1}', img_grid)
                     #writer.flush()
 
-
         running_loss /= len(dataloader)
         print(f"[Epoch {epoch+1}], [Reconstruction loss]: {running_loss:.4f}")
-        save_model(model, os.path.join(config.output_path,
-                                       'weights',
-                                       'autoencoder.pth'))
+        save_model(model, epoch, os.path.join(config.output_path,
+                                              'weights',
+                                              'autoencoder.pth'))
 
     return model
