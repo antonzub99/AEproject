@@ -47,11 +47,13 @@ def matplotlib_imshow(img, one_channel=False):
 
 
 def save_images(images, config, idx):
-     pics = (images + 1) / 2
-     save_image(pics.data.cpu(),
-                os.path.join(config.output_path,
-                             '{}-images.jpg'.format(idx+1)),
-                            nrow=8)
+    if not os.path.exists(os.path.join(config.output_path, 'outputs')):
+        os.makedirs(os.path.join(config.output_path, 'outputs'))
+    pics = (images + 1) / 2
+    save_image(pics.data.cpu(),
+              os.path.join(config.output_path, 'outputs',
+                          '{}-images.jpg'.format(idx+1)),
+                          nrow=8)
 
 
 def train(dataloader, config):
@@ -75,8 +77,12 @@ def train(dataloader, config):
         loss_func = nn.L1Loss()
     else:
         raise NotImplementedError()
+    
+    if config.resume_training:
+        print(f"loading weights...")
+        model = load_model(model, config.checkpoint_path)
 
-    writer = SummaryWriter(os.path.join(config.base_path, 'runs'))
+    #writer = SummaryWriter(os.path.join(config.base_path, 'runs'))
 
     for epoch in range(config.max_epochs):
         running_loss = 0.
@@ -99,18 +105,18 @@ def train(dataloader, config):
 
             if (epoch+1) % config.epoch_show == 0 and (idx+1) % config.idx_show == 0:
                 with torch.no_grad():
-                    pics = torch.cat([image, reconstructed])
+                    pics = torch.cat([image, reconstructed], dim=3)
                     save_images(pics, config, idx)
-                    img_grid = make_grid(pics.data.cpu(), nrow=8)
-                    matplotlib_imshow(img_grid)
-                    writer.add_image('ep{epoch+1}_batch{idx+1}', img_grid)
-                    writer.flush()
+                    #img_grid = make_grid(pics.data.cpu(), nrow=8)
+                    #matplotlib_imshow(img_grid)
+                    #writer.add_image('ep{epoch+1}_batch{idx+1}', img_grid)
+                    #writer.flush()
 
 
         running_loss /= len(dataloader)
         print(f"[Epoch {epoch+1}], [Reconstruction loss]: {running_loss:.4f}")
-        save_model(model, os.path.join(config.base_path,
+        save_model(model, os.path.join(config.output_path,
                                        'weights',
-                                       'autoencoder_{}.pth'.format(epoch)))
+                                       'autoencoder.pth'))
 
     return model
