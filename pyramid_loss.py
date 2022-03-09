@@ -1,3 +1,5 @@
+#code from https://gist.github.com/alper111/b9c6d80e2dba1ee0bfac15eb7dad09c8
+#by alper111
 import torch
 import torch.nn.functional as F
 
