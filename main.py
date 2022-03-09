@@ -18,7 +18,10 @@ def main(config):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description='''Check out what kind of arguments are required and what they do.''',
+        epilog='''For any questions or remarks contact me.'''
+    )
 
     parser.add_argument('--base_path', type=str, default='data', help='no idea why it is still there')
     parser.add_argument('--output_path', type=str, 
