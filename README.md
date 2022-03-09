@@ -1,16 +1,16 @@
 # Skoltech ML'22 course project
  
- ##1. Autoencoder
+ ## 1. Autoencoder
  
- ###CelebA setup
+ ### CelebA setup
  It is necessary to install `gdown=4.4.0` with `--no-cache-dir` parameter
  in order to download CelebA dataset properly
  
- ###Repo setup
+ ### Repo setup
  Run `git clone https://github.com/antonzub99/AEproject.git` 
  to clone repo to your local machine/colab VM
  
- ###Training
+ ### Training
  Run `python main.py --output_path=YOUR_PATH --loss_function=YOUR_LOSS --conv_init=YOUR_INIT`
 
 * `YOUR_PATH` - path to the main folder, where outputs of the model (weights, optimizer state, produced images) will be stored
@@ -23,4 +23,4 @@ More information about arguments can be obtained by running `python main.py -h`
 
  to be updated;
  
- ###TBD
+ ### TBD
