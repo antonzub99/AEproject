@@ -33,7 +33,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', type=str, default=f'cuda:{0}',
                         choices=[f'cuda:{0}', 'cpu'])
     parser.add_argument('--optim_name', type=str, default='adam',
-                        choices=['adam', 'sgd'])
+                        choices=['adam', 'sgd'], help='optimizer to use; only Adam is implemented')
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--weight_decay', type=float, default=0.0001)
     parser.add_argument('--beta_1', type=float, default=0.5)
