@@ -2,7 +2,7 @@ import os
 import argparse
 
 from trainer import train
-from build_loader import build_celeba_dataloader
+from loader.build_loader import build_celeba_dataloader
 
 
 def main(config):
@@ -38,9 +38,12 @@ if __name__ == '__main__':
     parser.add_argument('--weight_decay', type=float, default=0.0001)
     parser.add_argument('--beta_1', type=float, default=0.5)
     parser.add_argument('--beta_2', type=float, default=0.999)
+    parser.add_argument('--conv_init', type=str, default='kaiming_uniform',
+                        choices=['normal', 'kaiming_uniform', 'kaiming_normal'],
+                        help='weights initialization type in convolutional layers')
     parser.add_argument('--loss_function', type=str, default='mae',
-                        choices=['mae', 'laplacian'])
-    parser.add_argument('--max_epochs', type=int, default=50)
+                        choices=['mae', 'laplacian'], help='type of reconstruction loss')
+    parser.add_argument('--max_epochs', type=int, default=50, help='number of epochs to train')
     parser.add_argument('--epoch_show', type=int, default=1, help='epoch-rate of image show')
     parser.add_argument('--idx_show', type=int, default=10, help='batch-rate of image show')
     parser.add_argument('--url_dataset', type=str,

@@ -4,15 +4,38 @@ import numpy as np
 from torch import optim
 import os
 from tqdm.auto import tqdm
-from torch.utils.tensorboard import SummaryWriter
-from torchvision.utils import save_image, make_grid
+from torchvision.utils import save_image
 import matplotlib.pyplot as plt
 
-from model import AE
+from models.model import AE
+from pyramid_loss import LapLoss
 
 
 @torch.no_grad()
-def initialize_weights(m):
+def initialize_weights_normal(m):
+    if isinstance(m, nn.Conv2d):
+        nn.init.normal_(m.weight.data)
+        if m.bias is not None:
+            nn.init.constant_(m.bias.data, 0)
+    elif isinstance(m, nn.BatchNorm2d):
+        nn.init.constant_(m.weight.data, 1)
+        nn.init.constant_(m.bias.data, 0)
+
+
+@torch.no_grad()
+def initialize_weights_kaimnorm(m):
+    if isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight.data, a=0.2,
+                                nonlinearity='leaky_relu')
+        if m.bias is not None:
+            nn.init.constant_(m.bias.data, 0)
+    elif isinstance(m, nn.BatchNorm2d):
+        nn.init.constant_(m.weight.data, 1)
+        nn.init.constant_(m.bias.data, 0)
+
+
+@torch.no_grad()
+def initialize_weights_kaimuni(m):
     if isinstance(m, nn.Conv2d):
         nn.init.kaiming_uniform_(m.weight.data, a=0.2,
                                  nonlinearity='leaky_relu')
@@ -40,7 +63,7 @@ def load_model(model, checkpoint_path):
 def matplotlib_imshow(img, one_channel=False):
     if one_channel:
         img = img.mean(dim=0)
-    img = img / 2 + 0.5     # unnormalize
+    img = img / 2 + 0.5
     npimg = img.numpy()
     if one_channel:
         plt.imshow(npimg, cmap="Greys")
@@ -66,7 +89,14 @@ def train(dataloader, config):
                config.img_size).to(config.device)
     model.train()
 
-    model.apply(initialize_weights)
+    if config.conv_init == 'normal':
+        model.apply(initialize_weights_normal)
+    elif config.conv_init == 'kaiming_uniform':
+        model.apply(initialize_weights_kaimuni)
+    elif config.conv_init == 'kaiming_normal':
+        model.apply(initialize_weights_kaimnorm)
+    else:
+        raise NotImplementedError
 
     if config.optim_name == 'adam':
         optimizer = optim.Adam(model.parameters(), config.lr,
@@ -77,6 +107,8 @@ def train(dataloader, config):
 
     if config.loss_function == 'mae':
         loss_func = nn.L1Loss()
+    elif config.loss_function == 'laplacian':
+        loss_func = LapLoss(device=config.device)
     else:
         raise NotImplementedError()
     

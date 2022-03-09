@@ -1,5 +1,5 @@
 import requests
-from celeba import CelebADataset
+from loader.celeba import CelebADataset
 from torch.utils import data
 from torchvision import transforms
 
