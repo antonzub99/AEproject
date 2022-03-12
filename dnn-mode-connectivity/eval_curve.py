@@ -17,7 +17,8 @@ parser.add_argument('--dir', type=str, default='/tmp/eval', metavar='DIR',
 
 parser.add_argument('--num_points', type=int, default=61, metavar='N',
                     help='number of points on the curve (default: 61)')
-
+parser.add_argument('--device', type=str, default='cpu',
+                    choices=['cpu', f"cuda:{0}"], help='device for calculations')
 parser.add_argument('--dataset', type=str, default='CIFAR10', metavar='DATASET',
                     help='dataset name (default: CIFAR10)')
 parser.add_argument('--use_test', action='store_true',
@@ -69,7 +70,7 @@ model = curves.CurveNet(
     args.num_bends,
     architecture_kwargs=architecture.kwargs,
 )
-model.cuda()
+model = model.to(args.device)
 checkpoint = torch.load(args.ckpt)
 model.load_state_dict(checkpoint['model_state'])
 

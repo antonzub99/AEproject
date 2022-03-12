@@ -1,6 +1,5 @@
 import argparse
 import torch
-
 import curves
 import data
 import models
@@ -12,6 +11,8 @@ parser.add_argument('--dataset', type=str, default=None, metavar='DATASET',
                     help='dataset name (default: CIFAR10)')
 parser.add_argument('--use_test', action='store_true',
                     help='switches between validation and test set (default: validation)')
+parser.add_argument('--device', type=str, default='cpu',
+                    choices=['cpu', f"cuda:{0}"], help='device for calculations')
 parser.add_argument('--transform', type=str, default='VGG', metavar='TRANSFORM',
                     help='transform name (default: VGG)')
 parser.add_argument('--data_path', type=str, default=None, metavar='PATH',
@@ -82,9 +83,9 @@ for base_model, path, k in zip(base, [args.init_start, args.init_end], [0, args.
 if args.init_linear:
     print('Linear initialization.')
     curve_model.init_linear()
-curve_model.cuda()
+curve_model.to(args.device)
 for base_model in base:
-    base_model.cuda()
+    base_model = base_model.to(args.device)
 
 t = torch.FloatTensor([0.0]).cuda()
 for base_model, t_value in zip(base, [0.0, 1.0]):
@@ -95,11 +96,11 @@ for base_model, t_value in zip(base, [0.0, 1.0]):
     base_model.eval()
 
     max_error = 0.0
-    for i, (input, _) in enumerate(loader):
-        input = input.cuda(async=True)
+    for i, (inp, _) in enumerate(loader):
+        inp = inp.to(args.device)
 
-        base_ouput = base_model(input)
-        curve_output = curve_model(input, t)
+        base_ouput = base_model(inp)
+        curve_output = curve_model(inp, t)
 
         error = torch.max(torch.abs(base_ouput - curve_output)).item()
         print('Batch #%d. Error: %g' % (i, error))

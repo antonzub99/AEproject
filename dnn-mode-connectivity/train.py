@@ -15,9 +15,10 @@ import utils
 parser = argparse.ArgumentParser(description='DNN curve training')
 parser.add_argument('--dir', type=str, default='/tmp/curve/', metavar='DIR',
                     help='training directory (default: /tmp/curve/)')
-
 parser.add_argument('--dataset', type=str, default='CIFAR10', metavar='DATASET',
                     help='dataset name (default: CIFAR10)')
+parser.add_argument('--device', type=str, default='cpu',
+                    choices=['cpu', f"cuda:{0}"], help='device for calculations')
 parser.add_argument('--use_test', action='store_true',
                     help='switches between validation and test set (default: validation)')
 parser.add_argument('--transform', type=str, default='VGG', metavar='TRANSFORM',
@@ -111,7 +112,7 @@ else:
         if args.init_linear:
             print('Linear initialization.')
             model.init_linear()
-model.cuda()
+model = model.to(args.device)
 
 
 def learning_rate_schedule(base_lr, epoch, total_epochs):
@@ -160,9 +161,9 @@ for epoch in range(start_epoch, args.epochs + 1):
     lr = learning_rate_schedule(args.lr, epoch, args.epochs)
     utils.adjust_learning_rate(optimizer, lr)
 
-    train_res = utils.train(loaders['train'], model, optimizer, criterion, regularizer)
+    train_res = utils.train(loaders['train'], model, optimizer, criterion, args.deivce, regularizer)
     if args.curve is None or not has_bn:
-        test_res = utils.test(loaders['test'], model, criterion, regularizer)
+        test_res = utils.test(loaders['test'], model, criterion, args.device, regularizer)
 
     if epoch % args.save_freq == 0:
         utils.save_checkpoint(

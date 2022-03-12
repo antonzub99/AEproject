@@ -17,7 +17,8 @@ parser.add_argument('--dir', type=str, default='/tmp/chain/', metavar='DIR',
 
 parser.add_argument('--num_points', type=int, default=6, metavar='N',
                     help='number of points between models (default: 6)')
-
+parser.add_argument('--device', type=str, default='cpu',
+                    choices=['cpu', f"cuda:{0}"], help='device for calculations')
 parser.add_argument('--dataset', type=str, default='CIFAR10', metavar='DATASET',
                     help='dataset name (default: CIFAR10)')
 parser.add_argument('--use_test', action='store_true',
@@ -62,7 +63,7 @@ loaders, num_classes = data.loaders(
 
 architecture = getattr(models, args.model)
 base_model = architecture.base(num_classes, **architecture.kwargs)
-base_model.cuda()
+base_model = base_model.to(args.device)
 
 
 criterion = F.cross_entropy
@@ -108,8 +109,8 @@ for i in range(len(args.ckpt) - 1):
 
         utils.update_bn(loaders['train'], base_model)
 
-        tr_res = utils.test(loaders['train'], base_model, criterion, regularizer)
-        te_res = utils.test(loaders['test'], base_model, criterion, regularizer)
+        tr_res = utils.test(loaders['train'], base_model, criterion, args.device, regularizer)
+        te_res = utils.test(loaders['test'], base_model, criterion, args.device, regularizer)
 
         tr_loss[step] = tr_res['loss']
         tr_nll[step] = tr_res['nll']

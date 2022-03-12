@@ -13,6 +13,8 @@ parser = argparse.ArgumentParser(description='Ensemble evaluation')
 
 parser.add_argument('--dataset', type=str, default='CIFAR10', metavar='DATASET',
                     help='dataset name (default: CIFAR10)')
+parser.add_argument('--device', type=str, default='cpu',
+                    choices=['cpu', f"cuda:{0}"], help='device for calculations')
 parser.add_argument('--use_test', action='store_true',
                     help='switches between validation and test set (default: validation)')
 parser.add_argument('--transform', type=str, default='VGG', metavar='TRANSFORM',
@@ -47,7 +49,7 @@ architecture = getattr(models, args.model)
 model = architecture.base(num_classes=num_classes, **architecture.kwargs)
 criterion = F.cross_entropy
 
-model.cuda()
+model = model.to(args.device)
 
 ensemble_size = 0
 predictions_sum = np.zeros((len(loaders['test'].dataset), num_classes))
@@ -57,7 +59,7 @@ for path in args.ckpt:
     checkpoint = torch.load(path)
     model.load_state_dict(checkpoint['model_state'])
 
-    predictions, targets = utils.predictions(loaders['test'], model)
+    predictions, targets = utils.predictions(loaders['test'], model, args.device)
     acc = 100.0 * np.mean(np.argmax(predictions, axis=1) == targets)
 
     predictions_sum += predictions
