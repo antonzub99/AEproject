@@ -249,11 +249,11 @@ class AECurve(nn.Module):
                                latent_dim, fix_points, num_blocks)
         
         if conv_init == 'normal':
-            model.apply(initialize_weights_normal)
+            model.apply(initialize_weights_normalCurve)
         elif conv_init == 'kaiming_uniform':
-            model.apply(initialize_weights_kaimuni)
+            model.apply(initialize_weights_kaimuniCurve)
         elif conv_init == 'kaiming_normal':
-            model.apply(initialize_weights_kaimnorm)
+            model.apply(initialize_weights_kaimnormCurve)
         else:
             raise NotImplementedError
 
