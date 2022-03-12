@@ -11,6 +11,7 @@ import data
 import models
 import utils
 
+from pyramid_loss import LapLoss
 
 parser = argparse.ArgumentParser(description='DNN curve training')
 parser.add_argument('--dir', type=str, default='/tmp/curve/', metavar='DIR',
@@ -63,6 +64,11 @@ parser.add_argument('--wd', type=float, default=1e-4, metavar='WD',
                     help='weight decay (default: 1e-4)')
 
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
+
+parser.add_argument('--loss_function', type=str, default='mse')
+parser.add_argument('--optim_name', type=str, default='Adam')
+parser.add_argument('--beta_1', type=float, default=0.5)
+parser.add_argument('--beta_2', type=float, default=0.99)
 
 args = parser.parse_args()
 
@@ -126,14 +132,32 @@ def learning_rate_schedule(base_lr, epoch, total_epochs):
     return factor * base_lr
 
 
-criterion = F.cross_entropy
+if args.loss_function == 'mae':
+    criterion = nn.L1Loss()
+elif args.loss_function == 'laplacian':
+    criterion = LapLoss(device=args.device)
+else:
+    raise NotImplementedError()
+        
 regularizer = None if args.curve is None else curves.l2_regularizer(args.wd)
-optimizer = torch.optim.SGD(
-    filter(lambda param: param.requires_grad, model.parameters()),
-    lr=args.lr,
-    momentum=args.momentum,
-    weight_decay=args.wd if args.curve is None else 0.0
-)
+
+if args.optim_name == 'Adam':
+    optimizer = torch.optim.Adam(
+        filter(lambda param: param.requires_grad, model.parameters()), 
+        args.lr,
+        (args.beta_1, args.beta_2),
+        args.wd if args.curve is None else 0.0
+    )
+elif args.optim_name == 'SGD':
+    optimizer = torch.optim.SGD(
+        filter(lambda param: param.requires_grad, model.parameters()),
+        lr=args.lr,
+        momentum=args.momentum,
+        weight_decay=args.wd if args.curve is None else 0.0
+    )
+else:
+    raise NotImplementedError()
+        
 
 
 start_epoch = 1
