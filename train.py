@@ -158,7 +158,7 @@ if __name__ == '__main__':
         ae_net.load_state_dict(checkpoint['model_state'])
         optimizer.load_state_dict(checkpoint['optimizer_state'])
 
-    columns = ['ep', 'lr', 'tr_loss', 'te_loss', 'time']
+    columns = ['ep', 'lr', 'tr_loss', 'te_loss', 'time, mins']
 
     utils.save_checkpoint(
         args.dir,
@@ -170,7 +170,9 @@ if __name__ == '__main__':
     has_bn = utils.check_bn(ae_net)
     test_res = {'loss': None}
     tboard = SummaryWriter()
-    print("Start training...")
+    print(f"Start training...\n"
+          f"Reconstruction loss: {'Mean absolute error' if args.loss_function == 'mae' else 'Laplacian pyramid'}\n"
+          f"Weights initialization: {args.conv_init}")
     for epoch in range(start_epoch, args.epochs + 1):
         time_ep = time.perf_counter()
 
@@ -192,8 +194,8 @@ if __name__ == '__main__':
             )
 
         time_ep = time.perf_counter() - time_ep
-        tboard.add_scalar("Time for current epoch", time_ep)
-        values = [epoch, lr, train_res['loss'], test_res['loss'], time_ep]
+        tboard.add_scalar("Time for current epoch", time_ep / 60)
+        values = [epoch, lr, train_res['loss'], test_res['loss'], time_ep / 60]
 
         table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='9.4f')
         if epoch % 40 == 1 or epoch == start_epoch:

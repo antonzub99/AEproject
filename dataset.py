@@ -64,7 +64,7 @@ def build_loader(dataset, path, batch_size, num_workers, transform=None, split_r
     test_part = int(len(train_set) * split_ratio)
     all_names = train_set.filenames
     train_set.filenames = all_names[:-test_part]
-    test_set.filenames = all_names[test_part:]
+    test_set.filenames = all_names[-test_part:]
     return {
         'train': DataLoader(train_set, batch_size=batch_size,
                             shuffle=True, num_workers=num_workers,
