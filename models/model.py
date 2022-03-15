@@ -10,44 +10,55 @@ from models.AE_init_weights import initialize_weights_normalCurve, initialize_we
 
 # noinspection PyTypeChecker
 class BasicEncBlock(nn.Module):
-    def __init__(self, input_dim, output_dim, nonlinearity=nn.LeakyReLU(0.2)):
+    def __init__(self, input_dim, output_dim, kernel_size=3, stride=1,
+                 padding=1, residual=True, nonlinearity=nn.LeakyReLU(0.2)):
         super().__init__()
         block = [
-            nn.Conv2d(input_dim, output_dim, kernel_size=4, stride=2,
-                      padding=1),
+            nn.Conv2d(input_dim, output_dim, kernel_size=kernel_size, stride=stride,
+                      padding=padding),
             nn.BatchNorm2d(output_dim),
             nonlinearity
         ]
+        self.residual = residual
         self.encode = nn.Sequential(*block)
 
     def forward(self, x):
-        return self.encode(x)
+        if self.residual:
+            x = x + self.encode(x)
+        else:
+            x = self.encode(x)
+        return x
 
 
 class BasicEncBlockCurve(nn.Module):
-    def __init__(self, input_dim, output_dim, fix_points, nonlinearity=nn.LeakyReLU(0.2)):
+    def __init__(self, input_dim, output_dim, fix_points, kernel_size=3, stride=1,
+                 padding=1, residual=True, nonlinearity=nn.LeakyReLU(0.2)):
         super().__init__()
-        self.conv1 = curves.Conv2d(input_dim, output_dim, kernel_size=4, stride=2, padding=1, fix_points=fix_points)
+        self.conv1 = curves.Conv2d(input_dim, output_dim, kernel_size=kernel_size, stride=stride,
+                                   padding=padding, fix_points=fix_points)
         self.bn1 = curves.BatchNorm2d(output_dim, fix_points=fix_points)
         self.nonlinearity = nonlinearity
+        self.residual = residual
 
     def forward(self, x, coeffs_t):
-        x = self.conv1(x, coeffs_t)
-        x = self.bn1(x, coeffs_t)
-        x = self.nonlinearity(x)
-
-        return x
+        out = self.conv1(x, coeffs_t)
+        out = self.bn1(out, coeffs_t)
+        out = self.nonlinearity(out)
+        if self.residual:
+            out = x + out
+        return out
 
 
 # noinspection PyTypeChecker
 class BasicDecBlock(nn.Module):
-    def __init__(self, input_dim, output_dim, nonlinearity=nn.LeakyReLU(0.2)):
+    def __init__(self, input_dim, output_dim, kernel_size=3, stride=1,
+                 padding=0, nonlinearity=nn.LeakyReLU(0.2)):
         super().__init__()
         block = [
             nn.Upsample(scale_factor=2, mode='nearest'),
             nn.ReplicationPad2d(1),
-            nn.Conv2d(input_dim, output_dim, kernel_size=3, stride=1,
-                      padding=0),
+            nn.Conv2d(input_dim, output_dim, kernel_size=kernel_size, stride=stride,
+                      padding=padding),
             nn.BatchNorm2d(output_dim),
             nonlinearity
         ]
@@ -58,12 +69,13 @@ class BasicDecBlock(nn.Module):
 
 
 class BasicDecBlockCurve(nn.Module):
-    def __init__(self, input_dim, output_dim, fix_points, nonlinearity=nn.LeakyReLU(0.2)):
+    def __init__(self, input_dim, output_dim, fix_points, kernel_size=3, stride=1,
+                 padding=0, nonlinearity=nn.LeakyReLU(0.2)):
         super().__init__()
         self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
         self.replica = nn.ReplicationPad2d(1)
-        self.conv1 = curves.Conv2d(input_dim, output_dim, kernel_size=3, stride=1,
-                                   padding=0, fix_points=fix_points)
+        self.conv1 = curves.Conv2d(input_dim, output_dim, kernel_size=kernel_size, stride=stride,
+                                   padding=padding, fix_points=fix_points)
         self.bn1 = curves.BatchNorm2d(output_dim, fix_points=fix_points)
         self.nonlinearity = nonlinearity
 
@@ -79,22 +91,27 @@ class BasicDecBlockCurve(nn.Module):
 # noinspection PyTypeChecker
 class Encoder(nn.Module):
     def __init__(self, in_channels, input_dim,
-                 latent_dim, img_size=64, num_blocks=5):
+                 latent_dim, img_size=64, num_blocks=4):
         super().__init__()
         encoder = [nn.Conv2d(in_channels, input_dim, kernel_size=1,
-                             stride=1, padding=0, bias=False)]
+                             stride=1, padding=0, bias=False),
+                   nn.Tanh()]
         hidden_dim = input_dim
         spatial_size = img_size
         for _ in range(num_blocks):
-            encoder.append(BasicEncBlock(hidden_dim, hidden_dim * 2))
+            encoder.append(BasicEncBlock(hidden_dim, hidden_dim * 2, residual=False))
             hidden_dim *= 2
+            if _ % 2 == 0:
+                encoder.append(BasicEncBlock(hidden_dim, hidden_dim, residual=True))
+            encoder.append(BasicEncBlock(hidden_dim, hidden_dim,
+                                         kernel_size=5, stride=2, padding=2,
+                                         residual=False))
             spatial_size = spatial_size // 2
-
+        #encoder.append(nn.AvgPool2d(2))
+        encoder.append(nn.Conv2d(hidden_dim, hidden_dim, kernel_size=4,
+                                 stride=1, padding=0, bias=False))
         encoder.append(nn.Conv2d(hidden_dim, latent_dim, kernel_size=1,
                                  stride=1, padding=0, bias=False))
-        encoder.append(nn.Flatten())
-        encoder.append(nn.Linear(latent_dim * spatial_size * spatial_size,
-                                 latent_dim, bias=True))
         self.spatial_size = spatial_size
         self.hidden_dim = hidden_dim
         self.encoder = nn.Sequential(*encoder)
@@ -140,16 +157,22 @@ class EncoderCurve(nn.Module):
 
 # noinspection PyTypeChecker
 class Decoder(nn.Module):
-    def __init__(self, out_channels, input_dim, hidden_dim,
-                 latent_dim, num_blocks=5):
+    def __init__(self, out_channels, hidden_dim,
+                 latent_dim, num_blocks=4):
         super().__init__()
-        decoder = [nn.Linear(latent_dim, latent_dim * input_dim * input_dim),
-                   nn.Unflatten(1, (latent_dim, input_dim, input_dim)),
-                   nn.Conv2d(latent_dim, hidden_dim, kernel_size=1,
+        decoder = [nn.Conv2d(latent_dim, hidden_dim, kernel_size=1,
+                             stride=1, padding=0, bias=False),
+                   nn.Upsample(scale_factor=4, mode='nearest'),
+                   nn.Conv2d(hidden_dim, hidden_dim, kernel_size=1,
                              stride=1, padding=0, bias=False)]
+
         for _ in range(num_blocks):
-            decoder.append(BasicDecBlock(hidden_dim, hidden_dim // 2))
+            decoder.append(BasicDecBlock(hidden_dim, hidden_dim))
+            if _ % 2 == 1:
+                decoder.append(BasicEncBlock(hidden_dim, hidden_dim, residual=True))
+            decoder.append(BasicEncBlock(hidden_dim, hidden_dim // 2, residual=False))
             hidden_dim = hidden_dim // 2
+
         decoder.append(nn.Conv2d(hidden_dim, hidden_dim, kernel_size=1,
                                  stride=1, padding=0, bias=False))
         decoder.append(nn.Tanh())
@@ -200,14 +223,14 @@ class DecoderCurve(nn.Module):
 # noinspection PyTypeChecker
 class AEBase(nn.Module):
     def __init__(self, in_channels, input_dim, out_channels,
-                 latent_dim, conv_init='normal', img_size=64, num_blocks=5):
+                 latent_dim, conv_init='normal', img_size=64, num_blocks=4):
         super().__init__()
         self.encoder = Encoder(in_channels,
                                input_dim, latent_dim,
                                img_size, num_blocks)
         self.decoder = Decoder(out_channels,
-                               self.encoder.spatial_size, self.encoder.hidden_dim,
-                               latent_dim, num_blocks)
+                               self.encoder.hidden_dim, latent_dim,
+                               num_blocks)
         for m in self.modules():
             if conv_init == 'normal':
                 initialize_weights_normal(m)
