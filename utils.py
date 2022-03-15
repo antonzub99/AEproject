@@ -1,6 +1,7 @@
 import os
 import torch
 import models.curves as curves
+from torchvision.utils import make_grid
 
 
 def l2_regularizer(weight_decay):
@@ -38,25 +39,31 @@ def save_checkpoint(direc, epoch, name='checkpoint', **kwargs):
 
 
 def train(train_loader, model, optimizer, criterion,
-          device, regularizer=None, lr_schedule=None):
+          device, tboard, regularizer=None, lr_schedule=None):
     loss_sum = 0.0
     num_iters = len(train_loader)
     model.train()
-
-    for it, inp in enumerate(train_loader):
+    for idx, inp in enumerate(train_loader):
         if lr_schedule is not None:
-            lr = lr_schedule(it / num_iters)
+            lr = lr_schedule(idx / num_iters)
             adjust_learning_rate(optimizer, lr)
-        inp = inp.to(device)
 
+        inp = inp.to(device)
         output = model(inp)
         loss = criterion(inp, output)
+
         if regularizer is not None:
             loss += regularizer(model)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        with torch.no_grad():
+            print_images = torch.cat([inp, output], dim=3)
+            grid = make_grid(print_images, nrow=8, normalize=False)
+            tboard.add_image("Original and reconstructed images, train", grid)
+            tboard.add_scalar("Cur rec loss, train", loss.item(), idx)
 
         loss_sum += loss.item()
 
@@ -66,22 +73,30 @@ def train(train_loader, model, optimizer, criterion,
 
 
 def test(test_loader, model, criterion,
-         device, regularizer=None):
+         device, tboard, regularizer=None):
     loss_sum = 0.0
     model.eval()
-
-    for inp in test_loader:
+    num_iters = len(test_loader)
+    for idx, inp in enumerate(test_loader):
         inp = inp.to(device)
+
         with torch.no_grad():
             output = model(inp)
             loss = criterion(inp, output)
+
         if regularizer is not None:
             loss += regularizer(model)
+
+        with torch.no_grad():
+            print_images = torch.cat([inp, output], dim=3)
+            grid = make_grid(print_images, nrow=8, normalize=False)
+            tboard.add_image("Original and reconstructed images, test", grid)
+            tboard.add_scalar("Cur rec loss, test", loss.item(), idx)
 
         loss_sum += loss.item()
 
     return {
-        'loss': loss_sum / len(test_loader)
+        'loss': loss_sum / num_iters
     }
 
 
