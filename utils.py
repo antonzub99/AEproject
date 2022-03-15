@@ -1,9 +1,7 @@
 import os
 import torch
 import models.curves as curves
-from tqdm.auto import tqdm
 from torchvision.utils import make_grid
-from torch.utils.tensorboard import SummaryWriter
 
 
 def l2_regularizer(weight_decay):
@@ -45,8 +43,7 @@ def train(train_loader, model, optimizer, criterion,
     loss_sum = 0.0
     num_iters = len(train_loader)
     model.train()
-    progress_bar = tqdm(enumerate(train_loader), total=num_iters)
-    for idx, inp in progress_bar:
+    for idx, inp in enumerate(train_loader):
         if lr_schedule is not None:
             lr = lr_schedule(idx / num_iters)
             adjust_learning_rate(optimizer, lr)
@@ -63,13 +60,11 @@ def train(train_loader, model, optimizer, criterion,
         optimizer.step()
 
         with torch.no_grad():
-            print_images = torch.cat([inp, output], dim=1)
-            grid = make_grid(print_images)
+            print_images = torch.cat([inp, output], dim=3)
+            grid = make_grid(print_images, nrow=8, normalize=False)
             tboard.add_image("Original and reconstructed images, train", grid)
+            tboard.add_scalar("Cur rec loss, train", loss.item(), idx)
 
-        progress_bar.set_description(
-            f"[{idx+1}/{num_iters}] Reconstruction loss: {loss.item():.4f} "
-        )
         loss_sum += loss.item()
 
     return {
@@ -82,8 +77,7 @@ def test(test_loader, model, criterion,
     loss_sum = 0.0
     model.eval()
     num_iters = len(test_loader)
-    progress_bar = tqdm(enumerate(test_loader), total=num_iters)
-    for idx, inp in progress_bar:
+    for idx, inp in enumerate(test_loader):
         inp = inp.to(device)
 
         with torch.no_grad():
@@ -94,13 +88,11 @@ def test(test_loader, model, criterion,
             loss += regularizer(model)
 
         with torch.no_grad():
-            print_images = torch.cat([inp, output], dim=1)
-            grid = make_grid(print_images)
+            print_images = torch.cat([inp, output], dim=3)
+            grid = make_grid(print_images, nrow=8, normalize=False)
             tboard.add_image("Original and reconstructed images, test", grid)
+            tboard.add_scalar("Cur rec loss, test", loss.item(), idx)
 
-        progress_bar.set_description(
-            f"[{idx+1}/{num_iters}] Reconstruction loss: {loss.item():.4f} "
-        )
         loss_sum += loss.item()
 
     return {

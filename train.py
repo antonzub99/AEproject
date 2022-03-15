@@ -3,8 +3,10 @@ import os
 import sys
 import tabulate
 import time
+import tqdm.auto as tqdm
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from torch.backends import cudnn
 
 import models.curves as curves
 import dataset
@@ -22,7 +24,7 @@ parser.add_argument('--data_path', type=str, default='./data/', metavar='PATH',
                     help='path to datasets location (default: /data/)')
 parser.add_argument('--batch_size', type=int, default=64, metavar='N',
                     help='input batch size (default: 64)')
-parser.add_argument('--num-workers', type=int, default=4, metavar='N',
+parser.add_argument('--num_workers', type=int, default=4, metavar='N',
                     help='number of workers (default: 4)')
 parser.add_argument('--curve', type=str, default=None, metavar='CURVE',
                     help='curve type to use (default: None)')
@@ -69,7 +71,7 @@ with open(os.path.join(args.dir, 'command.sh'), 'w') as f:
     f.write(' '.join(sys.argv))
     f.write('\n')
 
-# torch.backends.cudnn.benchmark = True
+cudnn.benchmark = True
 torch.manual_seed(args.seed)
 torch.cuda.manual_seed(args.seed)
 
@@ -168,8 +170,9 @@ if __name__ == '__main__':
     has_bn = utils.check_bn(ae_net)
     test_res = {'loss': None}
     tboard = SummaryWriter()
+    print("Start training...")
     for epoch in range(start_epoch, args.epochs + 1):
-        time_ep = time.time()
+        time_ep = time.perf_counter()
 
         lr = learning_rate_schedule(args.lr, epoch, args.epochs)
         utils.adjust_learning_rate(optimizer, lr)
@@ -188,7 +191,7 @@ if __name__ == '__main__':
                 optimizer_state=optimizer.state_dict()
             )
 
-        time_ep = time.time() - time_ep
+        time_ep = time.perf_counter() - time_ep
         tboard.add_scalar("Time for current epoch", time_ep)
         values = [epoch, lr, train_res['loss'], test_res['loss'], time_ep]
 
