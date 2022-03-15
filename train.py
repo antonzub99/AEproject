@@ -13,12 +13,11 @@ import utils
 from pyramid_loss import LapLoss
 
 parser = argparse.ArgumentParser(description='Autoencoder curve connection training')
-parser.add_argument('--dir', type=str, default='/tmp/curve/', metavar='DIR',
+parser.add_argument('--dir', type=str, default='./tmp/curve/', metavar='DIR',
                     help='training directory (default: /tmp/curve/)')
 parser.add_argument('--device', type=str, default='cpu',
                     choices=['cpu', f"cuda:{0}"], help='device for calculations')
-
-parser.add_argument('--data_path', type=str, default='/data/', metavar='PATH',
+parser.add_argument('--data_path', type=str, default='./data/', metavar='PATH',
                     help='path to datasets location (default: /data/)')
 parser.add_argument('--batch_size', type=int, default=64, metavar='N',
                     help='input batch size (default: 64)')
@@ -26,7 +25,7 @@ parser.add_argument('--num-workers', type=int, default=4, metavar='N',
                     help='number of workers (default: 4)')
 parser.add_argument('--curve', type=str, default=None, metavar='CURVE',
                     help='curve type to use (default: None)')
-parser.add_argument('-loss', type=str, default='mae',
+parser.add_argument('--loss_function', type=str, default='mae',
                     choices=['mae', 'laplacian'], help='reconstruction loss type')
 parser.add_argument('--num_bends', type=int, default=3, metavar='N',
                     help='number of curve bends (default: 3)')
@@ -73,134 +72,133 @@ with open(os.path.join(args.dir, 'command.sh'), 'w') as f:
 torch.manual_seed(args.seed)
 torch.cuda.manual_seed(args.seed)
 
-cur_loc = os.path.dirname(os.path.abspath(__file__))
-
-loaders = dataset.build_loader(
-    dataset.CelebADataset,
-    os.path.join(cur_loc, args.data_path),
-    args.batch_size,
-    args.num_workers
-)
-
-meta_ae = model.AE
-if args.curve is None:
-    ae_net = meta_ae.base(3, 8, 3, args.latent_dim, args.conv_init,
-                          img_size=64, num_blocks=5)
-else:
-    curve = getattr(curves, args.curve)
-    ae_net = curves.CurveNet(
-        curve,
-        meta_ae.curve,
-        args.num_bends,
-        args.fix_start,
-        args.fix_end,
-        architecture_kwargs=meta_ae.kwargs,
+if __name__ == '__main__':
+    loaders = dataset.build_loader(
+        dataset.CelebADataset,
+        args.data_path,
+        args.batch_size,
+        args.num_workers
     )
-    base_model = None
-    if args.resume is None:
-        for path, k in [(args.init_start, 0), (args.init_end, args.num_bends - 1)]:
-            if path is not None:
-                if base_model is None:
-                    base_model = meta_ae.base(**meta_ae.kwargs)
-                checkpoint = torch.load(path)
-                print('Loading %s as point #%d' % (path, k))
-                base_model.load_state_dict(checkpoint['model_state'])
-                ae_net.import_base_parameters(base_model, k)
-        if args.init_linear:
-            print('Linear initialization.')
-            ae_net.init_linear()
-ae_net = ae_net.to(args.device)
 
-
-def learning_rate_schedule(base_lr, epoch, total_epochs):
-    alpha = epoch / total_epochs
-    if alpha <= 0.5:
-        factor = 1.0
-    elif alpha <= 0.9:
-        factor = 1.0 - (alpha - 0.5) / 0.4 * 0.99
+    meta_ae = model.AE
+    if args.curve is None:
+        ae_net = meta_ae.base(3, 8, 3, args.latent_dim, args.conv_init,
+                              img_size=64, num_blocks=5)
     else:
-        factor = 0.01
-    return factor * base_lr
-
-
-if args.loss_function == 'mae':
-    criterion = torch.nn.L1Loss()
-elif args.loss_function == 'laplacian':
-    criterion = LapLoss(device=args.device)
-else:
-    raise NotImplementedError
-
-regularizer = None if args.curve is None else curves.l2_regularizer(args.wd)
-
-if args.optim_name == 'Adam':
-    optimizer = torch.optim.Adam(
-        filter(lambda param: param.requires_grad, ae_net.parameters()),
-        args.lr,
-        (args.beta_1, args.beta_2),
-        args.wd if args.curve is None else 0.0
-    )
-elif args.optim_name == 'SGD':
-    optimizer = torch.optim.SGD(
-        filter(lambda param: param.requires_grad, ae_net.parameters()),
-        lr=args.lr,
-        momentum=args.momentum,
-        weight_decay=args.wd if args.curve is None else 0.0
-    )
-else:
-    raise NotImplementedError
-
-start_epoch = 1
-if args.resume is not None:
-    print('Resume training from %s' % args.resume)
-    checkpoint = torch.load(args.resume)
-    start_epoch = checkpoint['epoch'] + 1
-    ae_net.load_state_dict(checkpoint['model_state'])
-    optimizer.load_state_dict(checkpoint['optimizer_state'])
-
-columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'te_nll', 'te_acc', 'time']
-
-utils.save_checkpoint(
-    args.dir,
-    start_epoch - 1,
-    model_state=ae_net.state_dict(),
-    optimizer_state=optimizer.state_dict()
-)
-
-has_bn = utils.check_bn(ae_net)
-test_res = {'loss': None, 'accuracy': None, 'nll': None}
-for epoch in range(start_epoch, args.epochs + 1):
-    time_ep = time.time()
-
-    lr = learning_rate_schedule(args.lr, epoch, args.epochs)
-    utils.adjust_learning_rate(optimizer, lr)
-
-    train_res = utils.train(loaders['train'], ae_net, optimizer, criterion, args.deivce, regularizer)
-    if args.curve is None or not has_bn:
-        test_res = utils.test(loaders['test'], ae_net, criterion, args.device, regularizer)
-
-    if epoch % args.save_freq == 0:
-        utils.save_checkpoint(
-            args.dir,
-            epoch,
-            model_state=ae_net.state_dict(),
-            optimizer_state=optimizer.state_dict()
+        curve = getattr(curves, args.curve)
+        ae_net = curves.CurveNet(
+            curve,
+            meta_ae.curve,
+            args.num_bends,
+            args.fix_start,
+            args.fix_end,
+            architecture_kwargs=meta_ae.kwargs,
         )
+        base_model = None
+        if args.resume is None:
+            for path, k in [(args.init_start, 0), (args.init_end, args.num_bends - 1)]:
+                if path is not None:
+                    if base_model is None:
+                        base_model = meta_ae.base(**meta_ae.kwargs)
+                    checkpoint = torch.load(path)
+                    print('Loading %s as point #%d' % (path, k))
+                    base_model.load_state_dict(checkpoint['model_state'])
+                    ae_net.import_base_parameters(base_model, k)
+            if args.init_linear:
+                print('Linear initialization.')
+                ae_net.init_linear()
+    ae_net = ae_net.to(args.device)
 
-    time_ep = time.time() - time_ep
-    values = [epoch, lr, train_res['loss'], test_res['loss'], time_ep]
 
-    table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='9.4f')
-    if epoch % 40 == 1 or epoch == start_epoch:
-        table = table.split('\n')
-        table = '\n'.join([table[1]] + table)
+    def learning_rate_schedule(base_lr, epoch, total_epochs):
+        alpha = epoch / total_epochs
+        if alpha <= 0.5:
+            factor = 1.0
+        elif alpha <= 0.9:
+            factor = 1.0 - (alpha - 0.5) / 0.4 * 0.99
+        else:
+            factor = 0.01
+        return factor * base_lr
+
+
+    if args.loss_function == 'mae':
+        criterion = torch.nn.L1Loss()
+    elif args.loss_function == 'laplacian':
+        criterion = LapLoss(device=args.device)
     else:
-        table = table.split('\n')[2]
-    print(table)
+        raise NotImplementedError
 
-if args.epochs % args.save_freq != 0:
+    regularizer = None if args.curve is None else curves.l2_regularizer(args.wd)
+
+    if args.optim_name == 'Adam':
+        optimizer = torch.optim.Adam(
+            filter(lambda param: param.requires_grad, ae_net.parameters()),
+            args.lr,
+            (args.beta_1, args.beta_2),
+            args.wd if args.curve is None else 0.0
+        )
+    elif args.optim_name == 'SGD':
+        optimizer = torch.optim.SGD(
+            filter(lambda param: param.requires_grad, ae_net.parameters()),
+            lr=args.lr,
+            momentum=args.momentum,
+            weight_decay=args.wd if args.curve is None else 0.0
+        )
+    else:
+        raise NotImplementedError
+
+    start_epoch = 1
+    if args.resume is not None:
+        print('Resume training from %s' % args.resume)
+        checkpoint = torch.load(args.resume)
+        start_epoch = checkpoint['epoch'] + 1
+        ae_net.load_state_dict(checkpoint['model_state'])
+        optimizer.load_state_dict(checkpoint['optimizer_state'])
+
+    columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'te_nll', 'te_acc', 'time']
+
     utils.save_checkpoint(
         args.dir,
-        args.epochs,
+        start_epoch - 1,
         model_state=ae_net.state_dict(),
         optimizer_state=optimizer.state_dict()
     )
+
+    has_bn = utils.check_bn(ae_net)
+    test_res = {'loss': None}
+    for epoch in range(start_epoch, args.epochs + 1):
+        time_ep = time.time()
+
+        lr = learning_rate_schedule(args.lr, epoch, args.epochs)
+        utils.adjust_learning_rate(optimizer, lr)
+
+        train_res = utils.train(loaders['train'], ae_net, optimizer, criterion, args.device, regularizer)
+        if args.curve is None or not has_bn:
+            test_res = utils.test(loaders['test'], ae_net, criterion, args.device, regularizer)
+
+        if epoch % args.save_freq == 0:
+            utils.save_checkpoint(
+                args.dir,
+                epoch,
+                model_state=ae_net.state_dict(),
+                optimizer_state=optimizer.state_dict()
+            )
+
+        time_ep = time.time() - time_ep
+        values = [epoch, lr, train_res['loss'], test_res['loss'], time_ep]
+
+        table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='9.4f')
+        if epoch % 40 == 1 or epoch == start_epoch:
+            table = table.split('\n')
+            table = '\n'.join([table[1]] + table)
+        else:
+            table = table.split('\n')[2]
+        print(table)
+
+    if args.epochs % args.save_freq != 0:
+        utils.save_checkpoint(
+            args.dir,
+            args.epochs,
+            model_state=ae_net.state_dict(),
+            optimizer_state=optimizer.state_dict()
+        )

@@ -1,5 +1,5 @@
 import torch.nn as nn
-import curves
+import models.curves as curves
 
 __all__ = ['AE']
 

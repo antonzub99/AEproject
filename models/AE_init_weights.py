@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-import curves
+import models.curves as curves
 
 
 @torch.no_grad()
