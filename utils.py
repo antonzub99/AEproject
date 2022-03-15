@@ -1,6 +1,9 @@
 import os
 import torch
 import models.curves as curves
+from tqdm.auto import tqdm
+from torchvision.utils import make_grid
+from torch.utils.tensorboard import SummaryWriter
 
 
 def l2_regularizer(weight_decay):
@@ -38,19 +41,20 @@ def save_checkpoint(direc, epoch, name='checkpoint', **kwargs):
 
 
 def train(train_loader, model, optimizer, criterion,
-          device, regularizer=None, lr_schedule=None):
+          device, tboard, regularizer=None, lr_schedule=None):
     loss_sum = 0.0
     num_iters = len(train_loader)
     model.train()
-
-    for it, inp in enumerate(train_loader):
+    progress_bar = tqdm(enumerate(train_loader), total=num_iters)
+    for idx, inp in progress_bar:
         if lr_schedule is not None:
-            lr = lr_schedule(it / num_iters)
+            lr = lr_schedule(idx / num_iters)
             adjust_learning_rate(optimizer, lr)
-        inp = inp.to(device)
 
+        inp = inp.to(device)
         output = model(inp)
         loss = criterion(inp, output)
+
         if regularizer is not None:
             loss += regularizer(model)
 
@@ -58,6 +62,14 @@ def train(train_loader, model, optimizer, criterion,
         loss.backward()
         optimizer.step()
 
+        with torch.no_grad():
+            print_images = torch.cat([inp, output], dim=1)
+            grid = make_grid(print_images)
+            tboard.add_image("Original and reconstructed images, train", grid)
+
+        progress_bar.set_description(
+            f"[{idx+1}/{num_iters}] Reconstruction loss: {loss.item():.4f} "
+        )
         loss_sum += loss.item()
 
     return {
@@ -66,22 +78,33 @@ def train(train_loader, model, optimizer, criterion,
 
 
 def test(test_loader, model, criterion,
-         device, regularizer=None):
+         device, tboard, regularizer=None):
     loss_sum = 0.0
     model.eval()
-
-    for inp in test_loader:
+    num_iters = len(test_loader)
+    progress_bar = tqdm(enumerate(test_loader), total=num_iters)
+    for idx, inp in progress_bar:
         inp = inp.to(device)
+
         with torch.no_grad():
             output = model(inp)
             loss = criterion(inp, output)
+
         if regularizer is not None:
             loss += regularizer(model)
 
+        with torch.no_grad():
+            print_images = torch.cat([inp, output], dim=1)
+            grid = make_grid(print_images)
+            tboard.add_image("Original and reconstructed images, test", grid)
+
+        progress_bar.set_description(
+            f"[{idx+1}/{num_iters}] Reconstruction loss: {loss.item():.4f} "
+        )
         loss_sum += loss.item()
 
     return {
-        'loss': loss_sum / len(test_loader)
+        'loss': loss_sum / num_iters
     }
 
 

@@ -4,6 +4,7 @@ import sys
 import tabulate
 import time
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 import models.curves as curves
 import dataset
@@ -155,7 +156,7 @@ if __name__ == '__main__':
         ae_net.load_state_dict(checkpoint['model_state'])
         optimizer.load_state_dict(checkpoint['optimizer_state'])
 
-    columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'te_nll', 'te_acc', 'time']
+    columns = ['ep', 'lr', 'tr_loss', 'te_loss', 'time']
 
     utils.save_checkpoint(
         args.dir,
@@ -166,15 +167,18 @@ if __name__ == '__main__':
 
     has_bn = utils.check_bn(ae_net)
     test_res = {'loss': None}
+    tboard = SummaryWriter()
     for epoch in range(start_epoch, args.epochs + 1):
         time_ep = time.time()
 
         lr = learning_rate_schedule(args.lr, epoch, args.epochs)
         utils.adjust_learning_rate(optimizer, lr)
 
-        train_res = utils.train(loaders['train'], ae_net, optimizer, criterion, args.device, regularizer)
+        train_res = utils.train(loaders['train'], ae_net, optimizer, criterion, args.device, tboard, regularizer)
+        tboard.add_scalar("Reconstruction loss, train", train_res["loss"], epoch)
         if args.curve is None or not has_bn:
-            test_res = utils.test(loaders['test'], ae_net, criterion, args.device, regularizer)
+            test_res = utils.test(loaders['test'], ae_net, criterion, args.device, tboard, regularizer)
+            tboard.add_scalar("Reconstruction loss, test", test_res["loss"], epoch)
 
         if epoch % args.save_freq == 0:
             utils.save_checkpoint(
@@ -185,6 +189,7 @@ if __name__ == '__main__':
             )
 
         time_ep = time.time() - time_ep
+        tboard.add_scalar("Time for current epoch", time_ep)
         values = [epoch, lr, train_res['loss'], test_res['loss'], time_ep]
 
         table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='9.4f')
@@ -194,6 +199,8 @@ if __name__ == '__main__':
         else:
             table = table.split('\n')[2]
         print(table)
+
+    tboard.close()
 
     if args.epochs % args.save_freq != 0:
         utils.save_checkpoint(
