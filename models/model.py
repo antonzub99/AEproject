@@ -1,7 +1,6 @@
 import torch.nn as nn
 import models.curves as curves
 
-__all__ = ['AE']
 
 from models.AE_init_weights import initialize_weights_normal, initialize_weights_kaimnorm, initialize_weights_kaimuni
 from models.AE_init_weights import initialize_weights_normalCurve, initialize_weights_kaimnormCurve, \
@@ -195,16 +194,3 @@ class AECurve(nn.Module):
         x = self.encoder(x, coeffs_t)
         x = self.decoder(x, coeffs_t)
         return x
-
-
-class AE:
-    base = AEBase
-    curve = AECurve
-    kwargs = {
-        'in_channels': 3,
-        'input_dim': 8,
-        'latent_dim': 128,
-        'out_channels': 3,
-        'conv_init': 'normal',
-        'num_blocks': 4
-    }

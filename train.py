@@ -19,12 +19,13 @@ parser.add_argument('--data_path', type=str, default='./data/', metavar='PATH',
                     help='path to datasets location (default: /data/)')
 parser.add_argument('--batch_size', type=int, default=64, metavar='N',
                     help='input batch size (default: 64)')
-parser.add_argument('--num_workers', type=int, default=4, metavar='N',
-                    help='number of workers (default: 4)')
+parser.add_argument('--num_workers', type=int, default=2, metavar='N',
+                    help='number of workers (default: 2)')
 parser.add_argument('--curve', type=str, default=None, metavar='CURVE',
                     help='curve type to use (default: None)')
 parser.add_argument('--loss_function', type=str, default='mae',
                     choices=['mae', 'laplacian'], help='reconstruction loss type')
+
 parser.add_argument('--num_bends', type=int, default=3, metavar='N',
                     help='number of curve bends (default: 3)')
 parser.add_argument('--init_start', type=str, default=None, metavar='CKPT',
@@ -45,27 +46,32 @@ parser.add_argument('--latent_dim', type=int, default=128,
                     help='dimensionality of latent representation')
 parser.add_argument('--conv_init', type=str, default='normal',
                     choices=['normal', 'kaiming_uniform', 'kaiming_normal'], help='weights init in conv layers')
-parser.add_argument('--epochs', type=int, default=80, metavar='N',
-                    help='number of epochs to train (default: 80)')
-parser.add_argument('--save_freq', type=int, default=50, metavar='N',
-                    help='save frequency (default: 2)')
+parser.add_argument('--epochs', type=int, default=100, metavar='N',
+                    help='number of epochs to train (default: 100)')
+parser.add_argument('--save_freq', type=int, default=5, metavar='N',
+                    help='save frequency (default: 5)')
+
 parser.add_argument('--optim_name', type=str, default='Adam')
 parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
                     help='initial learning rate (default: 0.0001)')
 parser.add_argument('--beta_1', type=float, default=0.5)
-parser.add_argument('--beta_2', type=float, default=0.99)
+parser.add_argument('--beta_2', type=float, default=0.999)
 parser.add_argument('--momentum', type=float, default=None)
 parser.add_argument('--wd', type=float, default=1e-4, metavar='WD',
                     help='weight decay (default: 1e-4)')
 
+
+parser.add_argument('--tensorboard', dest='tensorboard', action='store_true',
+                    help='initialize tensorboard (default: False)')
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
 args = parser.parse_args()
+
 
 def main(args):
     os.makedirs(args.dir, exist_ok=True)
     #cudnn.benchmark = True
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed(args.seed)
+    #torch.manual_seed(args.seed)
+    #torch.cuda.manual_seed(args.seed)
 
     loaders = dataset.build_loader(
         dataset.CelebADataset,
@@ -106,27 +112,28 @@ def main(args):
             if args.init_linear:
                 print('Linear initialization.')
                 ae_net.init_linear()
-        ae_net = ae_net.to(args.device)
 
-        if args.optim_name == 'Adam':
-            optimizer = torch.optim.Adam(
-                filter(lambda param: param.requires_grad, ae_net.parameters()),
-                args.lr,
-                (args.beta_1, args.beta_2),
-                args.wd if args.curve is None else 0.0
-            )
-        elif args.optim_name == 'SGD':
-            optimizer = torch.optim.SGD(
-                filter(lambda param: param.requires_grad, ae_net.parameters()),
-                lr=args.lr,
-                momentum=args.momentum,
-                weight_decay=args.wd if args.curve is None else 0.0
-            )
-        else:
-            raise NotImplementedError
+    ae_net = ae_net.to(args.device)
 
-        trainer.trainloop(ae_net, optimizer, loaders, args)
-        return "Training Finished!"
+    if args.optim_name == 'Adam':
+        optimizer = torch.optim.Adam(
+            filter(lambda param: param.requires_grad, ae_net.parameters()),
+            args.lr,
+            (args.beta_1, args.beta_2),
+            args.wd if args.curve is None else 0.0
+        )
+    elif args.optim_name == 'SGD':
+        optimizer = torch.optim.SGD(
+            filter(lambda param: param.requires_grad, ae_net.parameters()),
+            lr=args.lr,
+            momentum=args.momentum,
+            weight_decay=args.wd if args.curve is None else 0.0
+        )
+    else:
+        raise NotImplementedError
+
+    trainer.trainloop(ae_net, optimizer, loaders, args)
+    return "Training Finished!"
 
 
 if __name__ == '__main__':

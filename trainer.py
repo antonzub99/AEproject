@@ -31,10 +31,8 @@ def save_checkpoint(direc, epoch, name='checkpoint', **kwargs):
     torch.save(state, filepath)
 
 
-
-
 def train(train_loader, model, optimizer, criterion,
-          device, tboard, regularizer=None, lr_schedule=None):
+          device, tboard=None, regularizer=None, lr_schedule=None):
     loss_sum = 0.0
     num_iters = len(train_loader)
     model.train()
@@ -61,9 +59,11 @@ def train(train_loader, model, optimizer, criterion,
             if idx == rand_batch:
                 print_images = torch.cat([inp, output], dim=3)
                 grid = make_grid(print_images, nrow=8, normalize=False)
-                tboard.add_image("Original and reconstructed images, train", grid, idx)
+                if tboard is not None:
+                    tboard.add_image("Original and reconstructed images, train", grid, idx)
                 plot_img(grid)
-            tboard.add_scalar("Cur rec loss, train", loss.item(), idx)
+            if tboard is not None:
+                tboard.add_scalar("Cur rec loss, train", loss.item(), idx)
         progress_bar.set_description(
             f"[Batch] {idx + 1}/{num_iters + 1} [Train loss] {loss.item()}"
         )
@@ -75,7 +75,7 @@ def train(train_loader, model, optimizer, criterion,
 
 
 def test(test_loader, model, criterion,
-         device, tboard, regularizer=None):
+         device, tboard=None, regularizer=None):
     loss_sum = 0.0
     model.eval()
     num_iters = len(test_loader)
@@ -94,8 +94,10 @@ def test(test_loader, model, criterion,
             if idx == rand_batch:
                 print_images = torch.cat([inp, output], dim=3)
                 grid = make_grid(print_images, nrow=8, normalize=False)
-                tboard.add_image("Original and reconstructed images, test", grid, idx)
-            tboard.add_scalar("Cur rec loss, test", loss.item(), idx)
+                if tboard is not None:
+                    tboard.add_image("Original and reconstructed images, test", grid, idx)
+            if tboard is not None:
+                tboard.add_scalar("Cur rec loss, test", loss.item(), idx)
 
         loss_sum += loss.item()
 
@@ -131,19 +133,27 @@ def trainloop(model, optimizer, dataloaders, args):
     )
 
     has_bn = utils.check_bn(model)
-    tboard = SummaryWriter()
+    tboard = None
+    if args.tensorboard:
+        tboard = SummaryWriter()
+
     print(f"Start training...\n"
           f"Reconstruction loss: {'Mean absolute error' if args.loss_function == 'mae' else 'Laplacian pyramid'}\n"
           f"Weights initialization: {args.conv_init}")
+
     test_res = {'loss': None}
+
     for epoch in range(start_epoch, args.epochs + 1):
         time_ep = time.perf_counter()
 
         lr = utils.learning_rate_schedule(args.lr, epoch, args.epochs)
         utils.adjust_learning_rate(optimizer, lr)
+
         print(f"[Epoch] {epoch}/{args.epochs}")
+
         train_res = train(dataloaders['train'], model, optimizer, criterion, args.device, tboard, regularizer)
         tboard.add_scalar("Reconstruction loss, train", train_res["loss"], epoch)
+
         if args.curve is None or not has_bn:
             test_res = test(dataloaders['test'], model, criterion, args.device, tboard, regularizer)
             tboard.add_scalar("Reconstruction loss, test", test_res["loss"], epoch)
@@ -167,7 +177,8 @@ def trainloop(model, optimizer, dataloaders, args):
             table = table.split('\n')[2]
         print(table)
 
-    tboard.close()
+    if args.tensorboard:
+        tboard.close()
 
     if args.epochs % args.save_freq != 0:
         save_checkpoint(
