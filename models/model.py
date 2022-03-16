@@ -152,8 +152,8 @@ class AEBase(nn.Module):
     def __init__(self, in_channels, input_dim, out_channels,
                  latent_dim, conv_init='normal', num_blocks=4):
         super().__init__()
-        self.encoder = Encoder(in_channels, input_dim, latent_dim, num_blocks)
-        self.decoder = Decoder(out_channels, self.encoder.hidden_dim, latent_dim, num_blocks)
+        self.encoder = Encoder(in_channels, latent_dim, input_dim, num_blocks)
+        self.decoder = Decoder(out_channels, latent_dim, self.encoder.hidden_dim, num_blocks)
         for m in self.modules():
             if conv_init == 'normal':
                 initialize_weights_normal(m)

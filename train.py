@@ -86,7 +86,7 @@ if __name__ == '__main__':
     meta_ae = model.AE
     if args.curve is None:
         ae_net = meta_ae.base(3, 8, 3, args.latent_dim, args.conv_init,
-                              img_size=64, num_blocks=4)
+                              num_blocks=4)
     else:
         curve = getattr(curves, args.curve)
         ae_net = curves.CurveNet(
