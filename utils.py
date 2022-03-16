@@ -1,8 +1,5 @@
-import os
 import torch
-import numpy as np
 import models.curves as curves
-from torchvision.utils import make_grid
 
 
 def l2_regularizer(weight_decay):
@@ -30,79 +27,15 @@ def adjust_learning_rate(optimizer, lr):
     return lr
 
 
-def save_checkpoint(direc, epoch, name='checkpoint', **kwargs):
-    state = {
-        'epoch': epoch,
-    }
-    state.update(kwargs)
-    filepath = os.path.join(direc, '%s-%d.pt' % (name, epoch))
-    torch.save(state, filepath)
-
-
-def train(train_loader, model, optimizer, criterion,
-          device, tboard, regularizer=None, lr_schedule=None):
-    loss_sum = 0.0
-    num_iters = len(train_loader)
-    model.train()
-    rand_batch = np.random.randint(0, num_iters)
-    for idx, inp in enumerate(train_loader):
-        if lr_schedule is not None:
-            lr = lr_schedule(idx / num_iters)
-            adjust_learning_rate(optimizer, lr)
-
-        inp = inp.to(device)
-        output = model(inp)
-        loss = criterion(inp, output)
-
-        if regularizer is not None:
-            loss += regularizer(model)
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        with torch.no_grad():
-            if idx == rand_batch:
-                print_images = torch.cat([inp, output], dim=3)
-                grid = make_grid(print_images, nrow=8, normalize=False)
-                tboard.add_image("Original and reconstructed images, train", grid, idx)
-            tboard.add_scalar("Cur rec loss, train", loss.item(), idx)
-
-        loss_sum += loss.item()
-
-    return {
-        'loss': loss_sum / num_iters
-    }
-
-
-def test(test_loader, model, criterion,
-         device, tboard, regularizer=None):
-    loss_sum = 0.0
-    model.eval()
-    num_iters = len(test_loader)
-    rand_batch = np.random.randint(0, num_iters)
-    for idx, inp in enumerate(test_loader):
-        inp = inp.to(device)
-
-        with torch.no_grad():
-            output = model(inp)
-            loss = criterion(inp, output)
-
-        if regularizer is not None:
-            loss += regularizer(model)
-
-        with torch.no_grad():
-            if idx == rand_batch:
-                print_images = torch.cat([inp, output], dim=3)
-                grid = make_grid(print_images, nrow=8, normalize=False)
-                tboard.add_image("Original and reconstructed images, test", grid, idx)
-            tboard.add_scalar("Cur rec loss, test", loss.item(), idx)
-
-        loss_sum += loss.item()
-
-    return {
-        'loss': loss_sum / num_iters
-    }
+def learning_rate_schedule(base_lr, epoch, total_epochs):
+    alpha = epoch / total_epochs
+    if alpha <= 0.5:
+        factor = 1.0
+    elif alpha <= 0.9:
+        factor = 1.0 - (alpha - 0.5) / 0.4 * 0.99
+    else:
+        factor = 0.01
+    return factor * base_lr
 
 
 def isbatchnorm(module):
