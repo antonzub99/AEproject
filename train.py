@@ -25,6 +25,8 @@ parser.add_argument('--curve', type=str, default=None, metavar='CURVE',
                     help='curve type to use (default: None)')
 parser.add_argument('--loss_function', type=str, default='mae',
                     choices=['mae', 'laplacian'], help='reconstruction loss type')
+parser.add_argument('--num_filters', type=int, default=7,
+                    help='number of layers in laplacian pyramid')
 
 parser.add_argument('--num_bends', type=int, default=3, metavar='N',
                     help='number of curve bends (default: 3)')

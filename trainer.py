@@ -111,7 +111,8 @@ def trainloop(model, optimizer, dataloaders, args):
     if args.loss_function == 'mae':
         criterion = torch.nn.L1Loss()
     elif args.loss_function == 'laplacian':
-        criterion = LapLoss(device=args.device)
+        criterion = LapLoss(max_levels=args.num_filters,
+                            device=args.device)
     else:
         raise NotImplementedError
 
