@@ -76,7 +76,7 @@ def train(train_loader, model, optimizer, criterion,
 
 
 def test(test_loader, model, criterion,
-         device, tboard=None, regularizer=None):
+         device, tboard=None, regularizer=None, **kwargs):
     loss_sum = 0.0
     model.eval()
     num_iters = len(test_loader)
@@ -85,7 +85,7 @@ def test(test_loader, model, criterion,
         inp = inp.to(device)
 
         with torch.no_grad():
-            output = model(inp)
+            output = model(inp, **kwargs)
             loss = criterion(inp, output)
 
         if regularizer is not None:
