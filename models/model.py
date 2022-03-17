@@ -126,7 +126,7 @@ class DecoderCurve(nn.Module):
                                     stride=1, padding=0, bias=False, fix_points=fix_points)
 
         self.layer = self._make_layer(BasicBlockCurve, num_blocks, fix_points)
-        self.layer.appendc(BasicBlockCurve(self.hidden_dim, out_channels, fix_points))
+        self.layer.append(BasicBlockCurve(self.hidden_dim, out_channels, fix_points))
 
         self.final_conv = curves.Conv2d(out_channels, out_channels, kernel_size=1, stride=1,
                                         padding=0, bias=False, fix_points=fix_points)
@@ -139,10 +139,10 @@ class DecoderCurve(nn.Module):
         return nn.ModuleList(layers)
 
     def forward(self, x, coeffs_t):
-        x = self.upconv(self.upsample4(x))
+        x = self.upconv(self.upsample4(x), coeffs_t)
         for block in self.layer:
-            x = self.upsample(block(x))
-        x = self.final_conv(x)
+            x = self.upsample(block(x, coeffs_t))
+        x = self.final_conv(x, coeffs_t)
         return x
 
 
@@ -173,10 +173,10 @@ class AECurve(nn.Module):
     def __init__(self, in_channels, input_dim, out_channels,
                  latent_dim, fix_points, conv_init='normal', num_blocks=4):
         super().__init__()
-        self.encoder = EncoderCurve(in_channels, input_dim, latent_dim, fix_points,
+        self.encoder = EncoderCurve(in_channels, latent_dim, fix_points, input_dim,
                                     num_blocks)
 
-        self.decoder = DecoderCurve(out_channels, self.encoder.hidden_dim, latent_dim, fix_points,
+        self.decoder = DecoderCurve(out_channels, latent_dim, fix_points, self.encoder.hidden_dim,
                                     num_blocks)
         if conv_init == 'normal':
             self.encoder.apply(initialize_weights_normalCurve)
