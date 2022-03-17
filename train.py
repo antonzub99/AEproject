@@ -17,6 +17,9 @@ parser.add_argument('--device', type=str, default='cpu',
                     choices=['cpu', f"cuda:{0}"], help='device for calculations')
 parser.add_argument('--data_path', type=str, default='./data/', metavar='PATH',
                     help='path to datasets location (default: /data/)')
+parser.add_argument('--verbose', type=int, default=1,
+                    choices=[0, 1, 2], help='printing of additional info during training')
+
 parser.add_argument('--batch_size', type=int, default=64, metavar='N',
                     help='input batch size (default: 64)')
 parser.add_argument('--num_workers', type=int, default=2, metavar='N',

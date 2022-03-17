@@ -152,9 +152,10 @@ def trainloop(model, optimizer, dataloaders, args):
         utils.adjust_learning_rate(optimizer, lr)
 
         print(f"[Epoch] {epoch}/{args.epochs}")
-        saveimgs = f"train_{epoch}"
+
         train_res = train(dataloaders['train'], model, optimizer, criterion, args.device,
-                          saveimgs, tboard, regularizer)
+                          None, tboard, regularizer)
+
         if tboard is not None:
             tboard.add_scalar("Reconstruction loss, train", train_res["loss"], epoch)
 
