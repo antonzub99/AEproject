@@ -215,16 +215,16 @@ class CelebaAutoencoder(nn.Module):
             embedding_dim (int): embedding dimensionality
     """
 
-    def __init__(self, init_num_filters=16, lrelu_slope=0.2, inter_fc_dim=128, embedding_dim=2, conv_init='normal'):
+    def __init__(self, init_num_filters=16, lrelu_slope=0.2, embedding_dim=128, nc=3,
+                 dropout=0.05, conv_init='normal'):
         super(CelebaAutoencoder, self).__init__()
 
         self.init_num_filters_ = init_num_filters
         self.lrelu_slope_ = lrelu_slope
-        self.inter_fc_dim_ = inter_fc_dim
         self.embedding_dim_ = embedding_dim
 
-        self.encoder = CelebaEncoder(init_num_filters, lrelu_slope, embedding_dim)
-        self.decoder = CelebaDecoder(init_num_filters, lrelu_slope, embedding_dim)
+        self.encoder = CelebaEncoder(init_num_filters, lrelu_slope, embedding_dim, nc, dropout)
+        self.decoder = CelebaDecoder(init_num_filters, lrelu_slope, embedding_dim, nc, dropout)
 
         for m in self.modules():
             if conv_init == 'kaiming_uniform':

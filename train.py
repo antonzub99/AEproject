@@ -6,7 +6,7 @@ from torch.backends import cudnn
 
 import models.curves as curves
 import dataset
-import models.model as model
+import models.autoencoders as autoencoders
 
 import trainer
 
@@ -28,7 +28,7 @@ parser.add_argument('--curve', type=str, default=None, metavar='CURVE',
                     help='curve type to use (default: None)')
 parser.add_argument('--loss_function', type=str, default='mae',
                     choices=['mae', 'laplacian'], help='reconstruction loss type')
-parser.add_argument('--num_filters', type=int, default=7,
+parser.add_argument('--num_filters', type=int, default=5,
                     help='number of layers in laplacian pyramid')
 
 parser.add_argument('--num_bends', type=int, default=3, metavar='N',
@@ -47,6 +47,8 @@ parser.add_argument('--init_linear_off', dest='init_linear', action='store_false
 parser.add_argument('--resume', type=str, default=None, metavar='CKPT',
                     help='checkpoint to resume training from (default: None)')
 
+parser.add_argument('--in_filters', type=int, default=64, help='initial number of filters in the first conv layer')
+parser.add_argument('--in_channels', type=int, default=3, help='number of channels in input images')
 parser.add_argument('--latent_dim', type=int, default=128,
                     help='dimensionality of latent representation')
 parser.add_argument('--conv_init', type=str, default='normal',
@@ -62,8 +64,8 @@ parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
 parser.add_argument('--beta_1', type=float, default=0.5)
 parser.add_argument('--beta_2', type=float, default=0.999)
 parser.add_argument('--momentum', type=float, default=None)
-parser.add_argument('--wd', type=float, default=1e-4, metavar='WD',
-                    help='weight decay (default: 1e-4)')
+parser.add_argument('--wd', type=float, default=1e-6, metavar='WD',
+                    help='weight decay (default: 1e-6)')
 
 parser.add_argument('--tensorboard', dest='tensorboard', action='store_true',
                     help='initialize tensorboard (default: False)')
@@ -84,20 +86,21 @@ def main(args):
         args.num_workers
     )
 
-    kwargs = {'in_channels': 3,
-              'input_dim': 8,
-              'out_channels': 3,
-              'latent_dim': args.latent_dim,
+    kwargs = {'init_num_filters': args.in_filters,
+              'lrelu_slope': 0.2,
+              'embedding_dim': args.latent_dim,
               'conv_init': args.conv_init,
-              'num_blocks': 4}
+              'nc': args.in_channels,
+              'dropout': 0.05
+    }
 
     if args.curve is None:
-        ae_net = model.AEBase(**kwargs)
+        ae_net = autoencoders.CelebaAutoencoder(**kwargs)
     else:
         curve = getattr(curves, args.curve)
         ae_net = curves.CurveNet(
             curve,
-            model.AECurve,
+            autoencoders.CelebaAutoencoderCurve,
             args.num_bends,
             args.fix_start,
             args.fix_end,
@@ -108,7 +111,7 @@ def main(args):
             for path, k in [(args.init_start, 0), (args.init_end, args.num_bends - 1)]:
                 if path is not None:
                     if base_model is None:
-                        base_model = model.AEBase(**kwargs)
+                        base_model = autoencoders.CelebaAutoencoder(**kwargs)
                     checkpoint = torch.load(path)
                     print('Loading %s as point #%d' % (path, k))
                     base_model.load_state_dict(checkpoint['model_state'])
