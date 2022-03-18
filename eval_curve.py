@@ -81,6 +81,8 @@ model = curves.CurveNet(
     architecture_kwargs=kwargs,
 )
 model = model.to(args.device)
+model.eval()
+
 checkpoint = torch.load(args.ckpt)
 model.load_state_dict(checkpoint['model_state'])
 
@@ -99,6 +101,10 @@ ts = np.linspace(0.0, 1.0, T)
 train_loss = np.zeros(T)
 test_loss = np.zeros(T)
 dl = np.zeros(T)
+
+eval_images = next(iter(loaders['train']))
+eval_images = eval_images[:4].to(args.device)
+images_dynamics = []
 
 previous_weights = None
 
@@ -126,6 +132,10 @@ for i, t_value in tqdm(enumerate(ts)):
     else:
         table = table.split('\n')[2]
     print(table)
+
+    with torch.no_grad():
+        outp = model(eval_images, t=t)
+        images_dynamics.append(outp.detach().cpu().numpy())
 
 
 def stats(values, dl):
@@ -162,4 +172,11 @@ np.savez(
     test_loss_max=test_loss_max,
     test_loss_avg=test_loss_avg,
     test_loss_int=test_loss_int,
+)
+
+images_dynamics = np.array(images_dynamics)
+filepath = os.path.join(args.dir, 'images.npz')
+np.savez(
+    filepath,
+    images_dynamics=images_dynamics
 )
