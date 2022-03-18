@@ -152,9 +152,6 @@ def trainloop(model, optimizer, dataloaders, args):
 
         lr = utils.learning_rate_schedule(args.lr, epoch, args.epochs)
         utils.adjust_learning_rate(optimizer, lr)
-
-        print(f"[Epoch] {epoch}/{args.epochs}")
-
         train_res = train(dataloaders['train'], model, optimizer, criterion, args.device,
                           None, tboard, regularizer)
 
