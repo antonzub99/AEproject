@@ -15,11 +15,10 @@ import time
 from tqdm.auto import tqdm
 
 
-def plot_img(img):
+def plot_img(img, name):
     img = img.detach().cpu().numpy()
-    plt.imshow(np.transpose(img, (1, 2, 0)), interpolation='nearest')
-    plt.show()
-    plt.clf()
+    plt.imshow(np.transpose(img, (1, 2, 0)))
+    plt.savefig(name)
 
 
 def save_checkpoint(direc, epoch, name='checkpoint', **kwargs):
@@ -32,7 +31,8 @@ def save_checkpoint(direc, epoch, name='checkpoint', **kwargs):
 
 
 def train(train_loader, model, optimizer, criterion,
-          device, tboard=None, regularizer=None, lr_schedule=None):
+          device, saveimgs=None, tboard=None,
+          regularizer=None, lr_schedule=None):
     loss_sum = 0.0
     num_iters = len(train_loader)
     model.train()
@@ -61,7 +61,8 @@ def train(train_loader, model, optimizer, criterion,
                 grid = make_grid(print_images, nrow=8, normalize=False)
                 if tboard is not None:
                     tboard.add_image("Original and reconstructed images, train", grid, idx)
-                plot_img(grid)
+                if saveimgs is not None:
+                    plot_img(grid, f"imgs/{saveimgs}.png")
             if tboard is not None:
                 tboard.add_scalar("Cur rec loss, train", loss.item(), idx)
         progress_bar.set_description(
@@ -75,7 +76,7 @@ def train(train_loader, model, optimizer, criterion,
 
 
 def test(test_loader, model, criterion,
-         device, tboard=None, regularizer=None):
+         device, tboard=None, regularizer=None, **kwargs):
     loss_sum = 0.0
     model.eval()
     num_iters = len(test_loader)
@@ -84,7 +85,7 @@ def test(test_loader, model, criterion,
         inp = inp.to(device)
 
         with torch.no_grad():
-            output = model(inp)
+            output = model(inp, **kwargs)
             loss = criterion(inp, output)
 
         if regularizer is not None:
@@ -110,7 +111,8 @@ def trainloop(model, optimizer, dataloaders, args):
     if args.loss_function == 'mae':
         criterion = torch.nn.L1Loss()
     elif args.loss_function == 'laplacian':
-        criterion = LapLoss(device=args.device)
+        criterion = LapLoss(max_levels=args.num_filters,
+                            device=args.device)
     else:
         raise NotImplementedError
 
@@ -151,12 +153,16 @@ def trainloop(model, optimizer, dataloaders, args):
 
         print(f"[Epoch] {epoch}/{args.epochs}")
 
-        train_res = train(dataloaders['train'], model, optimizer, criterion, args.device, tboard, regularizer)
-        tboard.add_scalar("Reconstruction loss, train", train_res["loss"], epoch)
+        train_res = train(dataloaders['train'], model, optimizer, criterion, args.device,
+                          None, tboard, regularizer)
+
+        if tboard is not None:
+            tboard.add_scalar("Reconstruction loss, train", train_res["loss"], epoch)
 
         if args.curve is None or not has_bn:
             test_res = test(dataloaders['test'], model, criterion, args.device, tboard, regularizer)
-            tboard.add_scalar("Reconstruction loss, test", test_res["loss"], epoch)
+            if tboard is not None:
+                tboard.add_scalar("Reconstruction loss, test", test_res["loss"], epoch)
         if epoch % args.save_freq == 0:
             save_checkpoint(
                 args.dir,
@@ -166,7 +172,8 @@ def trainloop(model, optimizer, dataloaders, args):
             )
 
         time_ep = time.perf_counter() - time_ep
-        tboard.add_scalar("Time for current epoch", time_ep / 60)
+        if tboard is not None:
+            tboard.add_scalar("Time for current epoch", time_ep / 60)
         values = [epoch, lr, train_res['loss'], test_res['loss'], time_ep / 60]
 
         table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='9.4f')
@@ -177,7 +184,7 @@ def trainloop(model, optimizer, dataloaders, args):
             table = table.split('\n')[2]
         print(table)
 
-    if args.tensorboard:
+    if tboard is not None:
         tboard.close()
 
     if args.epochs % args.save_freq != 0:

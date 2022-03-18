@@ -17,6 +17,9 @@ parser.add_argument('--device', type=str, default='cpu',
                     choices=['cpu', f"cuda:{0}"], help='device for calculations')
 parser.add_argument('--data_path', type=str, default='./data/', metavar='PATH',
                     help='path to datasets location (default: /data/)')
+parser.add_argument('--verbose', type=int, default=1,
+                    choices=[0, 1, 2], help='printing of additional info during training')
+
 parser.add_argument('--batch_size', type=int, default=64, metavar='N',
                     help='input batch size (default: 64)')
 parser.add_argument('--num_workers', type=int, default=2, metavar='N',
@@ -25,6 +28,8 @@ parser.add_argument('--curve', type=str, default=None, metavar='CURVE',
                     help='curve type to use (default: None)')
 parser.add_argument('--loss_function', type=str, default='mae',
                     choices=['mae', 'laplacian'], help='reconstruction loss type')
+parser.add_argument('--num_filters', type=int, default=7,
+                    help='number of layers in laplacian pyramid')
 
 parser.add_argument('--num_bends', type=int, default=3, metavar='N',
                     help='number of curve bends (default: 3)')
@@ -59,7 +64,6 @@ parser.add_argument('--beta_2', type=float, default=0.999)
 parser.add_argument('--momentum', type=float, default=None)
 parser.add_argument('--wd', type=float, default=1e-4, metavar='WD',
                     help='weight decay (default: 1e-4)')
-
 
 parser.add_argument('--tensorboard', dest='tensorboard', action='store_true',
                     help='initialize tensorboard (default: False)')
