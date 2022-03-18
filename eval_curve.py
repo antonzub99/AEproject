@@ -4,6 +4,7 @@ import os
 import tabulate
 import torch
 import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
 
 import utils
 from pyramid_loss import LapLoss
@@ -48,11 +49,12 @@ parser.add_argument('--num_points', type=int, default=61, metavar='N',
 parser.add_argument('--latent_dim', type=int, default=128,
                     help='dimensionality of latent representation')
 parser.add_argument('--conv_init', type=str, default='normal',
-                    choices=['normal', 'kaiming_uniform', 'kaiming_normal'], help='weights init in conv layers')  
-
+                    choices=['normal', 'kaiming_uniform', 'kaiming_normal'], help='weights init in conv layers')
 
 parser.add_argument('--wd', type=float, default=1e-4, metavar='WD',
                     help='weight decay (default: 1e-4)')
+parser.add_argument('--tensorboard', dest='tensorboard', action='store_true',
+                    help='initialize tensorboard (default: False)')
 
 args = parser.parse_args()
 
@@ -65,12 +67,13 @@ loaders = dataset.build_loader(
         args.num_workers
     )
 
-kwargs = {'in_channels': 3,
-        'input_dim': 8,
-        'out_channels': 3,
-        'latent_dim': args.latent_dim,
-        'conv_init': args.conv_init,
-        'num_blocks': 4
+kwargs = {
+    'in_channels': 3,
+    'input_dim': 8,
+    'out_channels': 3,
+    'latent_dim': args.latent_dim,
+    'conv_init': args.conv_init,
+    'num_blocks': 4
 }
 
 curve = getattr(curves, args.curve)
@@ -110,6 +113,10 @@ previous_weights = None
 
 columns = ['t', 'Train loss', 'Test loss']
 
+tboard = None
+if args.tensorboard:
+    tboard = SummaryWriter()
+
 t = torch.FloatTensor([0.0]).to(args.device)
 for i, t_value in tqdm(enumerate(ts)):
     t.data.fill_(t_value)
@@ -119,8 +126,8 @@ for i, t_value in tqdm(enumerate(ts)):
     previous_weights = weights.copy()
 
     utils.update_bn(loaders['train'], model, args.device, t=t)
-    train_res = trainer.test(loaders['train'], model, criterion, args.device, regularizer, t=t)
-    test_res = trainer.test(loaders['test'], model, criterion, args.device, regularizer, t=t)
+    train_res = trainer.test(loaders['train'], model, criterion, args.device, tboard, regularizer, t=t)
+    test_res = trainer.test(loaders['test'], model, criterion, args.device, tboard, regularizer, t=t)
     train_loss[i] = train_res['loss']
     test_loss[i] = test_res['loss']
 
@@ -136,6 +143,9 @@ for i, t_value in tqdm(enumerate(ts)):
     with torch.no_grad():
         outp = model(eval_images, t=t)
         images_dynamics.append(outp.detach().cpu().numpy())
+
+if tboard is not None:
+    tboard.close()
 
 
 def stats(values, dl):

@@ -65,7 +65,6 @@ parser.add_argument('--momentum', type=float, default=None)
 parser.add_argument('--wd', type=float, default=1e-4, metavar='WD',
                     help='weight decay (default: 1e-4)')
 
-
 parser.add_argument('--tensorboard', dest='tensorboard', action='store_true',
                     help='initialize tensorboard (default: False)')
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
