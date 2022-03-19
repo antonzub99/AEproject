@@ -1,4 +1,4 @@
-gdown==4.4.0
+gdown==4.4.0 --install_option='--no-cache-dir'
 torch==1.10.0
 torchvision==0.11.1
 tensorboard
