@@ -1,1 +1,6 @@
 data/
+ends/
+runs/
+__pycache__/
+models/__pycache__/
+.idea/
