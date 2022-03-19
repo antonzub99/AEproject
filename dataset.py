@@ -29,7 +29,8 @@ class CelebADataset(Dataset):
         self.dataset_folder = os.path.abspath(dataset_folder)
         download_path = f'{root_dir}/img_align_celeba.zip'
         if not os.path.isfile(download_path):
-            download_url = 'https://drive.google.com/file/d/1E6pxJuESVcOTqQ4yn6cshIEnis5DvOPK/view'
+            download_url = 'https://drive.google.com/file/d/1LTBwGtaJRUssVdDYsRKwfuRN-2t_xjxs/view'
+            #download_url = 'https://drive.google.com/file/d/1E6pxJuESVcOTqQ4yn6cshIEnis5DvOPK/view'
             gdown.download(download_url, download_path, quiet=False, fuzzy=True)
             with zipfile.ZipFile(download_path, 'r') as ziphandler:
                 ziphandler.extractall(root_dir)
