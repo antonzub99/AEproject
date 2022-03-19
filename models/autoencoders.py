@@ -88,9 +88,9 @@ class CelebaEncoderCurve(nn.Module):
             nn.Dropout(dropout)
         )
         self.features = nn.ModuleList(
-            [CurveBlock(self.init_num_filters, self.init_num_filters * 2, 4, 2, 1, fix_points=fix_points),
-             CurveBlock(self.init_num_filters * 2, self.init_num_filters * 4, 4, 2, 1, fix_points=fix_points),
-             CurveBlock(self.init_num_filters * 4, self.init_num_filters * 8, 4, 2, 1, fix_points=fix_points)]
+            [CurveBlock(self.init_num_filters_, self.init_num_filters_ * 2, 4, 2, 1, fix_points=fix_points),
+             CurveBlock(self.init_num_filters_ * 2, self.init_num_filters_ * 4, 4, 2, 1, fix_points=fix_points),
+             CurveBlock(self.init_num_filters_ * 4, self.init_num_filters_ * 8, 4, 2, 1, fix_points=fix_points)]
         )
 
         self.last_conv = curves.Conv2d(self.init_num_filters_ * 8, self.init_num_filters_ * 8, kernel_size=4,
@@ -180,10 +180,10 @@ class CelebaDecoderCurve(nn.Module):
             nn.Dropout(dropout)
         )
         self.features = nn.ModuleList(
-            [CurveBlock(self.init_num_filters_ * 8, self.init_num_filters * 8, 5, 1, 2, fix_points=fix_points),
-             CurveBlock(self.init_num_filters_ * 8, self.init_num_filters * 4, 5, 1, 2, fix_points=fix_points),
-             CurveBlock(self.init_num_filters * 4, self.init_num_filters * 2, 5, 1, 2, fix_points=fix_points),
-             CurveBlock(self.init_num_filters * 2, self.init_num_filters, 5, 1, 2, fix_points=fix_points)]
+            [CurveBlock(self.init_num_filters_ * 8, self.init_num_filters_ * 8, 5, 1, 2, fix_points=fix_points),
+             CurveBlock(self.init_num_filters_ * 8, self.init_num_filters_ * 4, 5, 1, 2, fix_points=fix_points),
+             CurveBlock(self.init_num_filters_ * 4, self.init_num_filters_ * 2, 5, 1, 2, fix_points=fix_points),
+             CurveBlock(self.init_num_filters_ * 2, self.init_num_filters_, 5, 1, 2, fix_points=fix_points)]
         )
 
         self.last_conv = curves.Conv2d(self.init_num_filters_, nc, kernel_size=5,
