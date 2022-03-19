@@ -57,6 +57,8 @@ parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train (default: 100)')
 parser.add_argument('--save_freq', type=int, default=5, metavar='N',
                     help='save frequency (default: 5)')
+parser.add_argument('--save_final', dest='save_final', action='store_true',
+                    help='whether to save only the model in the end (default: False)')
 
 parser.add_argument('--optim_name', type=str, default='Adam')
 parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',

@@ -186,10 +186,18 @@ def trainloop(model, optimizer, dataloaders, args):
     if tboard is not None:
         tboard.close()
 
-    if args.epochs % args.save_freq != 0:
+    if args.save_last:
+        save_checkpoint(
+            args.dir,
+            args.epochs,
+            model_state=model.state_dict()
+        )
+    elif args.epochs % args.save_freq != 0:
         save_checkpoint(
             args.dir,
             args.epochs,
             model_state=model.state_dict(),
             optimizer_state=optimizer.state_dict()
         )
+    else:
+        pass
