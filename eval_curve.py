@@ -93,7 +93,7 @@ def evaluate(args):
         args.num_bends,
         architecture_kwargs=kwargs,
     )
-    model = model.to(args.device)
+    model.to(args.device)
     model.eval()
 
     checkpoint = torch.load(args.ckpt)
