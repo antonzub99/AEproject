@@ -122,7 +122,7 @@ def main(args):
                 print('Linear initialization.')
                 ae_net.init_linear()
 
-    ae_net = ae_net.to(args.device)
+    ae_net.to(args.device)
 
     if args.optim_name == 'Adam':
         optimizer = torch.optim.Adam(
