@@ -1,5 +1,5 @@
 gdown==4.4.0
-torch==1.10.0
+torch
 torchvision==0.10.1
 tensorboard
 natsort==7.1.1
