@@ -3,7 +3,6 @@ import numpy as np
 import os
 import tabulate
 import torch
-import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
 import utils
@@ -12,6 +11,7 @@ import models.curves as curves
 import dataset
 import models.autoencoders as autoencoders
 import trainer
+from lpips_pytorch import LPIPS
 
 import time
 
@@ -43,6 +43,8 @@ parser.add_argument('--ckpt', type=str, default=None, metavar='CKPT',
 
 parser.add_argument('--num_points', type=int, default=61, metavar='N',
                     help='number of points on the curve (default: 61)')
+parser.add_argument('--lpips', dest='lpips', action='store_true',
+                    help='flag to evaluate LPIPS on curve')
 
 parser.add_argument('--latent_dim', type=int, default=128,
                     help='dimensionality of latent representation')
@@ -109,7 +111,13 @@ images_dynamics = []
 
 previous_weights = None
 
-columns = ['t', 'Train loss', 'Test loss', 'Time']
+columns = ['t', 'Train loss', 'Test loss']
+
+lpips_stat = []
+if args.lpips:
+    columns.append('LPIPS')
+
+columns.append('Time')
 
 tboard = None
 if args.tensorboard:
@@ -131,7 +139,24 @@ for i, t_value in enumerate(ts):
     test_loss[i] = test_res['loss']
 
     time_ep = time.perf_counter() - time_ep
-    values = [t, train_loss[i], test_loss[i], time_ep / 60]
+    values = [t, train_loss[i], test_loss[i]]
+
+    if args.lpips:
+        ttl_score = []
+        for idx, img_real in enumerate(loaders['test']):
+            img_real = img_real.to(args.device)
+            with torch.no_grad():
+                img_rec = model(img_real, t=t)
+                scorer = LPIPS().to(args.device)
+                score = scorer(img_rec, img_real).squeeze().item() / img_real.size(0)
+                ttl_score.append(score)
+        lpips = np.mean(ttl_score)
+        values.append(lpips)
+        lpips_stat.append(lpips)
+
+
+    values.append(time_ep / 60)
+
     table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='10.4f')
     if i % 40 == 0:
         table = table.split('\n')
@@ -183,6 +208,14 @@ np.savez(
     test_loss_avg=test_loss_avg,
     test_loss_int=test_loss_int,
 )
+
+if args.lpips:
+    lpips_stat = np.array(lpips_stat)
+    filepath = os.path.join(args.dir, 'lpipses.npz')
+    np.savez(
+        filepath,
+        lpips=lpips_stat
+    )
 
 images_dynamics = np.array(images_dynamics)
 filepath = os.path.join(args.dir, 'images.npz')
