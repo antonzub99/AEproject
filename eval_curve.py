@@ -10,12 +10,10 @@ import utils
 from pyramid_loss import LapLoss
 import models.curves as curves
 import dataset
-import models.model as model
-
+import models.autoencoders as autoencoders
 import trainer
 
 import time
-from tqdm.auto import tqdm
 
 
 parser = argparse.ArgumentParser(description='AE curve evaluation')
@@ -68,18 +66,18 @@ loaders = dataset.build_loader(
     )
 
 kwargs = {
-    'in_channels': 3,
-    'input_dim': 8,
-    'out_channels': 3,
-    'latent_dim': args.latent_dim,
+    'init_num_filters': 64,
+    'lrelu_slope': 0.2,
+    'embedding_dim': args.latent_dim,
     'conv_init': args.conv_init,
-    'num_blocks': 4
-}
+    'nc': 3,
+    'dropout': 0.05
+    }
 
 curve = getattr(curves, args.curve)
 model = curves.CurveNet(
     curve,
-    model.AECurve,
+    autoencoders.CelebaAutoencoderCurve,
     args.num_bends,
     architecture_kwargs=kwargs,
 )
@@ -111,14 +109,15 @@ images_dynamics = []
 
 previous_weights = None
 
-columns = ['t', 'Train loss', 'Test loss']
+columns = ['t', 'Train loss', 'Test loss', 'Time']
 
 tboard = None
 if args.tensorboard:
     tboard = SummaryWriter()
 
 t = torch.FloatTensor([0.0]).to(args.device)
-for i, t_value in tqdm(enumerate(ts)):
+for i, t_value in enumerate(ts):
+    time_ep = time.perf_counter()
     t.data.fill_(t_value)
     weights = model.weights(t)
     if previous_weights is not None:
@@ -131,7 +130,8 @@ for i, t_value in tqdm(enumerate(ts)):
     train_loss[i] = train_res['loss']
     test_loss[i] = test_res['loss']
 
-    values = [t, train_loss[i], test_loss[i]]
+    time_ep = time.perf_counter() - time_ep
+    values = [t, train_loss[i], test_loss[i], time_ep / 60]
     table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='10.4f')
     if i % 40 == 0:
         table = table.split('\n')
