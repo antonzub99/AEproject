@@ -300,7 +300,7 @@ class CurveNet(Module):
             parameter.data.copy_(base_parameter.data)
 
     def import_base_buffers(self, base_model):
-        for buffer, base_buffer in zip(self.net._all_buffers(), base_model._all_buffers()):
+        for buffer, base_buffer in zip(self.net.buffers(), base_model.buffers()):
             buffer.data.copy_(base_buffer.data)
 
     def export_base_parameters(self, base_model, index):
