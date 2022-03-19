@@ -186,7 +186,7 @@ def trainloop(model, optimizer, dataloaders, args):
     if tboard is not None:
         tboard.close()
 
-    if args.save_last:
+    if args.save_final:
         save_checkpoint(
             args.dir,
             args.epochs,
