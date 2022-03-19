@@ -118,7 +118,6 @@ if args.lpips:
     columns.append('LPIPS')
 
 columns.append('Time')
-
 tboard = None
 if args.tensorboard:
     tboard = SummaryWriter()
@@ -154,9 +153,7 @@ for i, t_value in enumerate(ts):
         values.append(lpips)
         lpips_stat.append(lpips)
 
-
     values.append(time_ep / 60)
-
     table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='10.4f')
     if i % 40 == 0:
         table = table.split('\n')
