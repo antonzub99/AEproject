@@ -181,14 +181,14 @@ def evaluate(args):
         test_loss[i] = test_res['loss']
 
         time_ep = time.perf_counter() - time_ep
-        values = [t, train_loss[i], test_loss[i]]
+        values = [t_value, train_loss[i], test_loss[i]]
 
         if args.lpips:
             ttl_score = []
             for idx, img_real in enumerate(loaders['test']):
                 img_real = img_real.to(args.device)
                 with torch.no_grad():
-                    img_rec = model(img_real, t=t)
+                    img_rec = model(img_real, **kwargs_curve)
                     scorer = LPIPS().to(args.device)
                     score = scorer(img_rec, img_real).squeeze().item() / img_real.size(0)
                     ttl_score.append(score)
