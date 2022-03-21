@@ -1,9 +1,12 @@
 import argparse
 import torch
+from torchvision.utils import make_grid
 
 from models import curves
 import dataset
 from models import autoencoders
+from pyramid_loss import LapLoss
+from trainer import plot_img
 
 
 parser = argparse.ArgumentParser(description='Check endpoints on the curve')
@@ -25,6 +28,11 @@ parser.add_argument('--latent_dim', type=int, default=128,
                     help='dimensionality of latent representation')
 parser.add_argument('--conv_init', type=str, default='normal',
                     choices=['normal', 'kaiming_uniform', 'kaiming_normal'], help='weights init in conv layers')
+
+parser.add_argument('--loss_function', type=str, default='mae',
+                    choices=['mae', 'laplacian'], help='reconstruction loss type')
+parser.add_argument('--num_filters', type=int, default=5,
+                    help='number of layers in laplacian pyramid')
 
 parser.add_argument('--curve', type=str, default=None, metavar='CURVE', required=True,
                     help='curve type to use (default: None)')
@@ -54,6 +62,14 @@ def check(args):
         args.batch_size,
         args.num_workers
     )
+
+    if args.loss_function == 'mae':
+        criterion = torch.nn.L1Loss()
+    elif args.loss_function == 'laplacian':
+        criterion = LapLoss(max_levels=args.num_filters,
+                            device=args.device)
+    else:
+        raise NotImplementedError
 
     kwargs = {'init_num_filters': args.in_filters,
               'lrelu_slope': 0.2,
@@ -96,16 +112,31 @@ def check(args):
         base_model.eval()
 
         max_error = 0.0
+        loss_base = 0.0
+        loss_curve = 0.0
         for idx, image in enumerate(loaders['test']):
             image = image.to(args.device)
 
             base_output = base_model(image)
             curve_output = curve_ae(image, t)
 
+            with torch.no_grad():
+                lbase = criterion(base_output, image)
+                lcurve = criterion(curve_output, image)
+                print_images = torch.cat([image, base_output, curve_output], dim=3)
+                grid = make_grid(print_images, nrow=8, normalize=False)
+                plot_img(grid, f'imgs/{int(t_value)}/img{idx}.png')
+
+
+            loss_base += lbase.item() / image.size(0)
+            loss_curve += lcurve.item() / image.size(0)
+
+
             error = torch.max(torch.abs(base_output - curve_output)).item()
             #print('Batch #%d. Error: %g' % (idx, error))
             max_error = max(max_error, error)
         print('Max error: %g' % max_error)
+        print(f'Base model loss:{loss_base:.4f}, Curve end loss:{loss_curve:.4f}')
         assert max_error < 1e-4, 'Error is too big (%g)' % max_error
 
 

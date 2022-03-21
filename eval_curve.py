@@ -107,7 +107,8 @@ def evaluate(args):
     else:
         raise NotImplementedError
 
-    regularizer = curves.l2_regularizer(args.wd)
+    #regularizer = curves.l2_regularizer(args.wd)
+    regularizer = None
 
     T = args.num_points
     ts = np.linspace(0.0, 1.0, T)
@@ -123,7 +124,7 @@ def evaluate(args):
 
     columns = ['t', 'Train loss', 'Test loss']
 
-    lpips_stat = []
+    lpips_stat = np.zeros(T)
     if args.lpips:
         columns.append('LPIPS')
 
@@ -141,9 +142,13 @@ def evaluate(args):
             dl[i] = np.sqrt(np.sum(np.square(weights - previous_weights)))
         previous_weights = weights.copy()
 
+        add_args = {'t': t}
+        if args.lpips:
+            add_args['lpips'] = 0.0
+
         utils.update_bn(loaders['train'], model, args.device, t=t)
         train_res = trainer.test(loaders['train'], model, criterion, args.device, tboard, regularizer, t=t)
-        test_res = trainer.test(loaders['test'], model, criterion, args.device, tboard, regularizer, t=t)
+        test_res = trainer.test(loaders['test'], model, criterion, args.device, tboard, regularizer, **add_args)
         train_loss[i] = train_res['loss']
         test_loss[i] = test_res['loss']
 
@@ -151,17 +156,8 @@ def evaluate(args):
         values = [t, train_loss[i], test_loss[i]]
 
         if args.lpips:
-            ttl_score = []
-            for idx, img_real in enumerate(loaders['test']):
-                img_real = img_real.to(args.device)
-                with torch.no_grad():
-                    img_rec = model(img_real, t=t)
-                    scorer = LPIPS().to(args.device)
-                    score = scorer(img_rec, img_real).squeeze().item() / img_real.size(0)
-                    ttl_score.append(score)
-            lpips = np.mean(ttl_score)
-            values.append(lpips)
-            lpips_stat.append(lpips)
+            lpips_stat[i] = test_res['lpips']
+            values.append(lpips_stat[i])
 
         values.append(time_ep / 60)
         table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='10.4f')
