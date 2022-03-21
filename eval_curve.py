@@ -39,6 +39,8 @@ parser.add_argument('--num_workers', type=int, default=2, metavar='N',
                     help='number of workers (default: 2)')
 parser.add_argument('--loss_function', type=str, default='mae',
                     choices=['mae', 'laplacian'], help='reconstruction loss type')
+parser.add_argument('--num_filters', type=int, default=5,
+                    help='num of layers in laplace pyramid')
 
 parser.add_argument('--curve', type=str, default=None, metavar='CURVE',
                     help='curve type to use (default: None)')
