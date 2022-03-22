@@ -5,7 +5,6 @@ import numpy as np
 import utils
 from pyramid_loss import LapLoss
 from models import curves
-from lpips_pytorch import LPIPS
 
 from torchvision.utils import make_grid
 import matplotlib.pyplot as plt
@@ -45,7 +44,6 @@ def train(train_loader, model, optimizer, criterion,
             lr = lr_schedule(idx / num_iters)
             utils.adjust_learning_rate(optimizer, lr)
 
-
         inp = inp.to(device)
         inp_noised = (inp + torch.randn_like(inp) * 0.05).detach()
         output = model(inp_noised)
@@ -84,23 +82,12 @@ def test(test_loader, model, criterion,
     num_iters = len(test_loader)
     rand_batch = np.random.randint(0, num_iters)
 
-    add_args = dict()
-    add_args.update(**kwargs)
-    lpips_flag = True if 'lpips' in add_args else False
-    lpips_scores = []
-
     for idx, inp in enumerate(test_loader):
         inp = inp.to(device)
 
         with torch.no_grad():
             output = model(inp, **kwargs)
             loss = criterion(inp, output)
-
-        if lpips_flag:
-            with torch.no_grad():
-                scorer = LPIPS().to(device)
-                score = scorer(output, inp).squeeze().item() / inp.size(0)
-                lpips_scores.append(score)
 
         if regularizer is not None:
             loss += regularizer(model)
@@ -117,8 +104,6 @@ def test(test_loader, model, criterion,
         loss_sum += loss.item()
 
     test_out = {'loss': loss_sum / num_iters}
-    if lpips_flag:
-        test_out['lpips'] = np.mean(lpips_scores)
 
     return test_out
 
