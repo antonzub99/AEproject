@@ -1,6 +1,7 @@
 # Through the void: interpolating paths for autoencoder's parameters
 
 This is a repository for the final project of Machine Learning course at Skoltech, term 3 '22.
+Team: Anton Zubekhin, Polina Karpikova, Nikita Fedyashin
 The study and code are based on a paper [Loss Surfaces, Mode Connectivity, and Fast Ensembling of DNNs](https://arxiv.org/abs/1802.10026)
 
 by Timur Garipov, Pavel Izmailov, Dmitrii Podoprikhin, Dmitry Vetrov and Andrew Gordon Wilson (NIPS 2018, Spotlight)
@@ -155,6 +156,11 @@ upon initialization of the dataset in the main code;
 # Results 
 Image dynamics along trained low-loss curve:
 ![](https://github.com/antonzub99/AEproject/tree/main/media/gifs/curve_mae_norm_kaimnorm.gif)
+Along segment connection:
+![](https://github.com/antonzub99/AEproject/tree/main/media/gifs/seg_mae_norm_kaimnorm.gif)
+Bad checkpoints for the curve:
+![](https://github.com/antonzub99/AEproject/tree/main/media/gifs/curve_lap_norm_kaimnorm.gif)
+Check other in `/media/gifs` folder.
 
 # Credits
 
