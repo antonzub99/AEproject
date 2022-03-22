@@ -156,15 +156,19 @@ upon initialization of the dataset in the main code;
 
 # Results 
 Image dynamics along L1 trained low-loss curve:
+
 ![curve_mae_norm_kaimnorm](https://user-images.githubusercontent.com/62748704/159593734-8d9c8456-9cba-4328-8cfa-c04efc089b31.gif)
 
 Along Laplacian pyramid trained curve:
+
 ![kaimnorm_kaimuni](https://user-images.githubusercontent.com/62748704/159594581-c0268302-a562-4f8e-8336-3bebdfcb200f.gif)
 
 Along segment connection:
+
 ![seg_mae_norm_kaimnorm](https://user-images.githubusercontent.com/62748704/159594283-d378f126-d504-4d42-9a99-ee0c0b8f0432.gif)
 
 And one more:
+
 ![triv_kaimnorm_kaimuni](https://user-images.githubusercontent.com/62748704/159594616-2136f0bf-349e-41bc-b056-5ce39782e612.gif)
 
 
