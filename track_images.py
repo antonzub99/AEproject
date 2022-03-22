@@ -12,7 +12,6 @@ from lpips_pytorch import LPIPS
 
 parser = argparse.ArgumentParser(description='Connection evaluation')
 
-
 parser.add_argument('--start', type=int, default=None,
                     help='number of first checkpoint')
 parser.add_argument('--end', type=int, default=None,

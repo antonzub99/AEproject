@@ -65,9 +65,6 @@ def train(train_loader, model, optimizer, criterion,
                     plot_img(grid, f"imgs/{saveimgs}.png")
             if tboard is not None:
                 tboard.add_scalar("Cur rec loss, train", loss.item(), idx)
-        #progress_bar.set_description(
-        #    f"[Batch] {idx + 1}/{num_iters + 1} [Train loss] {loss.item()}"
-        #)
         loss_sum += loss.item()
 
     return {
@@ -100,9 +97,7 @@ def test(test_loader, model, criterion,
                     tboard.add_image("Original and reconstructed images, test", grid, idx)
             if tboard is not None:
                 tboard.add_scalar("Cur rec loss, test", loss.item(), idx)
-
         loss_sum += loss.item()
-
     test_out = {'loss': loss_sum / num_iters}
 
     return test_out

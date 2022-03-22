@@ -47,7 +47,8 @@ parser.add_argument('--init_linear_off', dest='init_linear', action='store_false
 parser.add_argument('--resume', type=str, default=None, metavar='CKPT',
                     help='checkpoint to resume training from (default: None)')
 
-parser.add_argument('--in_filters', type=int, default=64, help='initial number of filters in the first conv layer')
+parser.add_argument('--in_filters', type=int, default=64,
+                    help='initial number of filters in the first conv layer')
 parser.add_argument('--in_channels', type=int, default=3, help='number of channels in input images')
 parser.add_argument('--latent_dim', type=int, default=128,
                     help='dimensionality of latent representation')
@@ -77,9 +78,8 @@ args = parser.parse_args()
 
 def main(args):
     os.makedirs(args.dir, exist_ok=True)
-    #cudnn.benchmark = True
-    #torch.manual_seed(args.seed)
-    #torch.cuda.manual_seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
 
     loaders = dataset.build_loader(
         dataset.CelebADataset,

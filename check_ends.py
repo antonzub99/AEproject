@@ -52,10 +52,6 @@ args = parser.parse_args()
 
 
 def check(args):
-    #torch.backends.cudnn.benchmark = True
-    #torch.manual_seed(args.seed)
-    #torch.cuda.manual_seed(args.seed)
-
     loaders = dataset.build_loader(
         dataset.CelebADataset,
         args.data_path,
@@ -127,13 +123,9 @@ def check(args):
                 grid = make_grid(print_images, nrow=8, normalize=False)
                 plot_img(grid, f'imgs/{int(t_value)}/img{idx}.png')
 
-
             loss_base += lbase.item() / image.size(0)
             loss_curve += lcurve.item() / image.size(0)
-
-
             error = torch.max(torch.abs(base_output - curve_output)).item()
-            #print('Batch #%d. Error: %g' % (idx, error))
             max_error = max(max_error, error)
         print('Max error: %g' % max_error)
         print(f'Base model loss:{loss_base:.4f}, Curve end loss:{loss_curve:.4f}')

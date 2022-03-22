@@ -112,7 +112,6 @@ def evaluate(args):
         )
         model.to(args.device)
         model.eval()
-
         checkpoint = torch.load(args.ckpt)
         model.load_state_dict(checkpoint['model_state'])
     elif args.connect == 'TRIVIAL':
@@ -125,8 +124,6 @@ def evaluate(args):
         w_2 = get_weights(model)
     else:
         raise NotImplementedError
-
-    #regularizer = None if args.connect == 'TRIVIAL' else curves.l2_regularizer(args.wd)
 
     if args.loss_function == 'mae':
         criterion = torch.nn.L1Loss()
