@@ -37,7 +37,6 @@ def train(train_loader, model, optimizer, criterion,
     model.train()
 
     rand_batch = np.random.randint(0, num_iters)
-    #progress_bar = tqdm(, total=num_iters)
     for idx, inp in enumerate(train_loader):
         optimizer.zero_grad()
         if lr_schedule is not None:
