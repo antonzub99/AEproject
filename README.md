@@ -153,7 +153,8 @@ upon initialization of the dataset in the main code;
 `utils.py` has additional utility functions inherited from original repo;
 
 # Results 
-TBD
+Image dynamics along trained low-loss curve:
+![](https://github.com/antonzub99/AEproject/tree/main/media/gifs/curve_mae_norm_kaimnorm.gif)
 
 # Credits
 
