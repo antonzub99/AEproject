@@ -1,0 +1,12 @@
+data/
+ends/
+runs/
+__pycache__/
+models/__pycache__/
+.idea/
+ckpt/
+imgs/
+curveckpt/
+notebooks/ae_test_arch.ipynb
+models/model.py
+mae/

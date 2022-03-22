@@ -55,7 +55,7 @@ class LapLoss(torch.nn.Module):
         self.max_levels = max_levels
         self.gauss_kernel = gauss_kernel(channels=channels, device=device)
 
-    def forward(self, input, target):
-        pyr_input = laplacian_pyramid(img=input, kernel=self.gauss_kernel, max_levels=self.max_levels)
+    def forward(self, inp, target):
+        pyr_input = laplacian_pyramid(img=inp, kernel=self.gauss_kernel, max_levels=self.max_levels)
         pyr_target = laplacian_pyramid(img=target, kernel=self.gauss_kernel, max_levels=self.max_levels)
         return sum(F.l1_loss(a, b) for a, b in zip(pyr_input, pyr_target))
