@@ -126,7 +126,7 @@ def evaluate(args):
     else:
         raise NotImplementedError
 
-    regularizer = None if args.connect == 'TRIVIAL' else curves.l2_regularizer(args.wd)
+    #regularizer = None if args.connect == 'TRIVIAL' else curves.l2_regularizer(args.wd)
 
     if args.loss_function == 'mae':
         criterion = torch.nn.L1Loss()
@@ -136,7 +136,6 @@ def evaluate(args):
     else:
         raise NotImplementedError
 
-    #regularizer = curves.l2_regularizer(args.wd)
     regularizer = None
 
     T = args.num_points
@@ -183,9 +182,6 @@ def evaluate(args):
                 dl[i] = np.sqrt(np.sum(np.square(weights - previous_weights)))
             previous_weights = weights.copy()
 
-        if args.lpips:
-            kwargs_curve['lpips'] = 0.0
-
         utils.update_bn(loaders['train'], model, args.device, **kwargs_curve)
         train_res = trainer.test(loaders['train'], model, criterion, args.device, tboard, regularizer, **kwargs_curve)
         test_res = trainer.test(loaders['test'], model, criterion, args.device, tboard, regularizer, **kwargs_curve)
@@ -196,8 +192,17 @@ def evaluate(args):
         values = [t_value, train_loss[i], test_loss[i]]
 
         if args.lpips:
-            lpips_stat[i] = test_res['lpips']
-            values.append(lpips_stat[i])
+            ttl_score = []
+            for idx, img_real in enumerate(loaders['test']):
+                img_real = img_real.to(args.device)
+                with torch.no_grad():
+                    img_rec = model(img_real, **kwargs_curve)
+                    scorer = LPIPS().to(args.device)
+                    score = scorer(img_rec, img_real).squeeze().item() / img_real.size(0)
+                    ttl_score.append(score)
+            lpips = np.mean(ttl_score)
+            values.append(lpips)
+            lpips_stat[i] = lpips
 
         values.append(time_ep / 60)
         table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='10.4f')
@@ -215,7 +220,7 @@ def evaluate(args):
     if tboard is not None:
         tboard.close()
 
-    if args.connect=='CURVE':
+    if args.connect == 'CURVE':
         train_loss_min, train_loss_max, train_loss_avg, train_loss_int = stats(train_loss, dl)
         test_loss_min, test_loss_max, test_loss_avg, test_loss_int = stats(test_loss, dl)
 
