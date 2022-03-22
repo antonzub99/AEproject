@@ -155,6 +155,10 @@ upon initialization of the dataset in the main code;
 `utils.py` has additional utility functions inherited from original repo;
 
 # Results 
+Typical loss behaviour:
+
+
+
 Image dynamics along L1 trained low-loss curve:
 
 ![curve_mae_norm_kaimnorm](https://user-images.githubusercontent.com/62748704/159593734-8d9c8456-9cba-4328-8cfa-c04efc089b31.gif)
@@ -172,7 +176,6 @@ And one more:
 ![triv_kaimnorm_kaimuni](https://user-images.githubusercontent.com/62748704/159594616-2136f0bf-349e-41bc-b056-5ce39782e612.gif)
 
 
-Bad checkpoints for the curve:
 
 Check other in `/media/gifs` folder.
 
