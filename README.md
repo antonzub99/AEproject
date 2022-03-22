@@ -151,11 +151,12 @@ upon initialization of the dataset in the main code;
 
 `trainer.py` stores basic functions for training and testing of the models;
 
+
 `utils.py` has additional utility functions inherited from original repo;
 
 # Results 
 Image dynamics along trained low-loss curve:
-![](https://github.com/antonzub99/AEproject/tree/main/media/gifs/curve_mae_norm_kaimnorm.gif)
+![curve_mae_norm_kaimnorm](https://user-images.githubusercontent.com/62748704/159593734-8d9c8456-9cba-4328-8cfa-c04efc089b31.gif)
 Along segment connection:
 ![](https://github.com/antonzub99/AEproject/tree/main/media/gifs/seg_mae_norm_kaimnorm.gif)
 Bad checkpoints for the curve:
