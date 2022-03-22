@@ -104,7 +104,7 @@ def evaluate(args):
     T = args.num_points
     ts = np.linspace(0.0, 1.0, T)
 
-    eval_images = next(iter(loaders['train']))
+    eval_images = next(iter(loaders['test']))
     eval_images = eval_images[:4].to(args.device)
     images_dynamics_curve = []
     images_dynamics_seg = []
