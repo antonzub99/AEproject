@@ -7,3 +7,6 @@ models/__pycache__/
 ckpt/
 imgs/
 curveckpt/
+notebooks/ae_test_arch.ipynb
+models/model.py
+mae/
