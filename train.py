@@ -77,9 +77,8 @@ args = parser.parse_args()
 
 def main(args):
     os.makedirs(args.dir, exist_ok=True)
-    #cudnn.benchmark = True
-    #torch.manual_seed(args.seed)
-    #torch.cuda.manual_seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
 
     loaders = dataset.build_loader(
         dataset.CelebADataset,

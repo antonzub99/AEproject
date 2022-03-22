@@ -52,10 +52,6 @@ args = parser.parse_args()
 
 
 def check(args):
-    #torch.backends.cudnn.benchmark = True
-    #torch.manual_seed(args.seed)
-    #torch.cuda.manual_seed(args.seed)
-
     loaders = dataset.build_loader(
         dataset.CelebADataset,
         args.data_path,

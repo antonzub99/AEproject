@@ -126,8 +126,6 @@ def evaluate(args):
     else:
         raise NotImplementedError
 
-    #regularizer = None if args.connect == 'TRIVIAL' else curves.l2_regularizer(args.wd)
-
     if args.loss_function == 'mae':
         criterion = torch.nn.L1Loss()
     elif args.loss_function == 'laplacian':
